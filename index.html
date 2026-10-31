@@ -438,15 +438,29 @@ const idb = () => new Promise((res, rej) => { if (TS.db) return res(TS.db); let 
 const idbTx = (mode, fn) => idb().then(db => new Promise((res, rej) => { const t = db.transaction("files", mode), q = fn(t.objectStore("files")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
 const jpost = (u, o) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json", ...hdr() }, body: JSON.stringify(o) }).then(r => { if (!r.ok) throw new Error(u + " " + r.status); });
 const TPL = {
-  list: async () => (TS.mode === "srv" ? await (await fetch("api/files", { cache: "no-store" })).json() : (await idbTx("readonly", s => s.getAll())).map(({ blob, ...m }) => m)).map(f => ({ ...f, ctl: f.ctl || [] })),
-  add: async (file, ctl) => {
-    const m = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: file.name, size: file.size, ctl, ts: Date.now() };
-    if (TS.mode === "srv") { const r = await fetch("api/upload?" + new URLSearchParams({ id: m.id, name: m.name, ctl: ctl.join(",") }), { method: "POST", headers: hdr(), body: file }); if (!r.ok) throw new Error("upload " + r.status); }
-    else await idbTx("readwrite", s => s.put({ ...m, blob: file }));
+  // 強制讀取 Git 上的 files.json
+  list: async () => {
+    try {
+      const res = await fetch("files.json", { cache: "no-store" });
+      const data = await res.json();
+      return data.map(f => ({ ...f, ctl: f.ctl || [] }));
+    } catch (e) {
+      return [];
+    }
   },
-  link: async (id, ctl) => { if (TS.mode === "srv") await jpost("api/meta", { id, ctl }); else { const rec = await idbTx("readonly", s => s.get(id)); rec.ctl = ctl; await idbTx("readwrite", s => s.put(rec)); } },
-  del: async id => { if (TS.mode === "srv") await fetch("api/files?id=" + id, { method: "DELETE", headers: hdr() }); else await idbTx("readwrite", s => s.delete(id)); },
-  get: async id => { const m = TL.find(f => f.id === id), a = document.createElement("a"); if (TS.mode === "srv") a.href = "files/" + id; else a.href = URL.createObjectURL((await idbTx("readonly", s => s.get(id))).blob); a.download = m.name; a.click(); }
+  // 下載時直接指向 Git 上的檔案路徑 (對應 json 裡的 id)
+  get: async id => {
+    const m = TL.find(f => f.id === id);
+    if (!m) return;
+    const a = document.createElement("a");
+    a.href = "files/" + m.name; // 這裡依據你實際存放的路徑與檔名規則調整
+    a.download = m.name;
+    a.click();
+  },
+  // 阻擋靜態網頁無法執行的上傳與修改功能
+  add: async () => alert("目前為 GitHub Pages 唯讀模式，無法上傳新檔案。"),
+  link: async () => alert("目前為 GitHub Pages 唯讀模式，無法修改控制措施對應。"),
+  del: async () => alert("目前為 GitHub Pages 唯讀模式，無法刪除檔案。")
 };
 
 let player = { month: 1, score: 60, hasTraining: false, hasBackup: false, hasAudit: false };
