@@ -487,7 +487,7 @@ window.doLogout = () => {
     document.body.classList.remove("serious-mode");
     $("#modeBtn").innerHTML = "📊 認真模式";
     sb.classList.remove("open");
-    size();
+    // 不再觸發 size() 以避免 three.js 報錯
   }
 };
 
@@ -497,14 +497,12 @@ window.doLogout = () => {
 const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; // 各島建議完成月份（依島序 01–12，可依專案調整）
 const PKEY = "iso27001_island_progress";
 const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, nc: {}, ts: 0 };
-const TS = { mode: "idb", auth: false, key: "", db: null, pend: [], edit: null };
+const TS = { mode: "static", auth: false, key: "", db: null, pend: [], edit: null }; // 預設改為 static，移除 srv 相關邏輯
 let TL = [];
-const hdr = () => TS.key ? { "X-Key": TS.key } : {};
 
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
 const saveP = () => {
   P.ts = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {}
-  if (TS.mode === "srv" && canEdit()) fetch("api/progress", { method: "POST", headers: { "Content-Type": "application/json", ...hdr() }, body: JSON.stringify(P) }).catch(() => {});
 };
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isNA = no => !!P.na[no];
@@ -530,28 +528,29 @@ const dnl = no => no[0] === "C" ? "條款" + no.slice(1) : no;
 const fmtSz = b => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
 const ico = n => /\.(docx?|dotx?)$/i.test(n) ? "📝" : /\.(xlsx?|csv)$/i.test(n) ? "📊" : /\.pdf$/i.test(n) ? "📕" : /\.pptx?$/i.test(n) ? "📽️" : "📄";
 const tplN = no => TL.filter(f => f.ctl.includes(no)).length;
-// ---- 模板庫儲存：區網伺服器 (server.py) 或瀏覽器 IndexedDB ----
-const idb = () => new Promise((res, rej) => { if (TS.db) return res(TS.db); let r; try { r = indexedDB.open("iso27001_island", 1); } catch (e) { return rej(e); } r.onupgradeneeded = () => r.result.createObjectStore("files", { keyPath: "id" }); r.onsuccess = () => res(TS.db = r.result); r.onerror = () => rej(r.error); });
-const idbTx = (mode, fn) => idb().then(db => new Promise((res, rej) => { const t = db.transaction("files", mode), q = fn(t.objectStore("files")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
-const jpost = (u, o) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json", ...hdr() }, body: JSON.stringify(o) }).then(r => { if (!r.ok) throw new Error(u + " " + r.status); });
+
+// ---- 靜態 GitHub Pages 模板庫存取 ----
 const TPL = {
-  list: async () => (TS.mode === "srv" ? await (await fetch("api/files", { cache: "no-store" })).json() : TS.mode === "static" ? await (await fetch("files.json", { cache: "no-store" })).json() : (await idbTx("readonly", s => s.getAll())).map(({ blob, ...m }) => m)).map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) })),
-  add: async (file, ctl) => {
-    const m = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: file.name, size: file.size, ctl, ts: Date.now() };
-    if (TS.mode === "srv") { const r = await fetch("api/upload?" + new URLSearchParams({ id: m.id, name: m.name, ctl: ctl.join(",") }), { method: "POST", headers: hdr(), body: file }); if (!r.ok) throw new Error("upload " + r.status); }
-    else await idbTx("readwrite", s => s.put({ ...m, blob: file }));
+  list: async () => {
+    try {
+      const res = await fetch("files.json", { cache: "no-store" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) }));
+    } catch (e) {
+      return [];
+    }
   },
-  link: async (id, ctl) => { if (TS.mode === "srv") await jpost("api/meta", { id, ctl }); else { const rec = await idbTx("readonly", s => s.get(id)); rec.ctl = ctl; await idbTx("readwrite", s => s.put(rec)); } },
-  del: async id => { if (TS.mode === "srv") await fetch("api/files?id=" + id, { method: "DELETE", headers: hdr() }); else await idbTx("readwrite", s => s.delete(id)); },
+  add: async () => alert("目前為 GitHub Pages 唯讀模式，無法上傳新檔案。"),
+  link: async () => alert("目前為 GitHub Pages 唯讀模式，無法修改控制措施對應。"),
+  del: async () => alert("目前為 GitHub Pages 唯讀模式，無法刪除檔案。"),
   get: async id => {
-    const m = TL.find(f => f.id === id), a = document.createElement("a");
-    if (TS.mode === "srv") a.href = "files/" + id;
-    else if (TS.mode === "static") {
-      a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/");
-      const r = await fetch(a.href, { method: "HEAD" }).catch(() => null);
-      if (!r || !r.ok) throw new Error("找不到 Files/" + (m.path || m.name) + "，請確認 files.json 的 path 與 Files 資料夾裡的檔名一致");
-    } else a.href = URL.createObjectURL((await idbTx("readonly", s => s.get(id))).blob);
-    a.download = m.name; a.click();
+    const m = TL.find(f => f.id === id);
+    if (!m) return;
+    const a = document.createElement("a");
+    a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/");
+    a.download = m.name;
+    a.click();
   }
 };
 
@@ -831,7 +830,10 @@ function boot() {
         const shareBtn = $("#shareBtn");
         if(shareBtn) {
           shareBtn.onclick = async () => {
-            shareBtn.innerHTML = "處理中..."; ren.render(scene, cam); 
+            shareBtn.innerHTML = "處理中..."; 
+            if (!document.body.classList.contains("serious-mode")) {
+              ren.render(scene, cam); 
+            }
             try {
               const canvas = await html2canvas(document.body, {
                 useCORS: true, ignoreElements: (el) => { return el.id === 'sb' || el.id === 'cx' || el.classList.contains('tools') || el.classList.contains('hud') || el.classList.contains('tracker') || (el.tagName === 'BUTTON' && el.classList.contains('btn')); }
@@ -935,12 +937,12 @@ function boot() {
     const isSerious = document.body.classList.toggle("serious-mode");
     this.innerHTML = isSerious ? "🎮 3D 視角" : "📊 認真模式";
     if (isSerious) {
-      $("#card").hidden = true; // 隱藏中央彈出卡片
-      sb.classList.add("open"); // 確保側邊欄展開
+      $("#card").hidden = true; 
+      sb.classList.add("open"); 
     } else {
       sb.classList.remove("open");
+      size(); // 只有在切換回 3D 模式時才重新計算畫面，避免報錯
     }
-    size(); // 觸發 Three.js 重新計算畫面比例
   };
 
   const ray = new THREE.Raycaster(), nd = new THREE.Vector2(); let downPos = null;
@@ -962,13 +964,18 @@ function boot() {
     }
   });
 
-  const size = () => { ren.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); };
+  const size = () => { 
+    if (document.body.classList.contains("serious-mode")) return; // 如果在認真模式，不要觸發 three.js resize
+    ren.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); 
+  };
   new ResizeObserver(size).observe(stage); size();
   const v3 = V(0, 0, 0);
   const place = (el, x, y, z, w, h) => { v3.set(x, y, z).project(cam); el.style.visibility = v3.z < 1 ? "" : "hidden"; el.style.left = `${(v3.x * 0.5 + 0.5) * w}px`; el.style.top = `${(-v3.y * 0.5 + 0.5) * h}px`; };
 
   function loop(ts) {
     requestAnimationFrame(loop);
+    if (document.body.classList.contains("serious-mode")) return; // 認真模式時暫停 3D 渲染，節省效能
+    
     const dt = Math.min(0.08, (ts - last) / 1000) * speedMulti; last = ts; mt += dt;
 
     if (fl) {
@@ -1008,7 +1015,7 @@ function boot() {
     
     // 找出有缺失的項目
     const hasNC = N.filter(n => ncOf(n.no) > 0).sort((a, b) => ncOf(b.no) - ncOf(a.no));
-    const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="document.body.classList.remove('serious-mode'); $('#modeBtn').innerText='📊 認真模式'; pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
+    const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="document.body.classList.remove('serious-mode'); $('#modeBtn').innerText='📊 認真模式'; size(); pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
     
     $("#tabPg").innerHTML = `
       <input class="search" placeholder="客戶 / 專案名稱" ${dis} value="${esc(P.client)}" onchange="pgSet('client', this.value)">
@@ -1027,13 +1034,13 @@ function boot() {
         <button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>
         <button class="btn" style="background:#ef4444" onclick="doLogout()">登出 (${currentUser ? currentUser.name : ''})</button>
       </div>
-      <p class="note">${TS.mode === "srv" ? "目前連線到區網伺服器：進度與模板由顧問更新後，所有人重新整理即可看到。" : TS.mode === "static" ? "目前是網站模式：模板來自 files.json；進度只存在各自的瀏覽器，請用「匯出進度」保存。" : "目前是單機模式：進度與模板只存在這個瀏覽器；要多人共用請用 server.py 啟動。"} 附錄 A 之外，條款 4–10（範圍、風險評鑑、風險處理計畫、SoA、內稽、管理審查）也必須完成。</p>`;
+      <p class="note">目前是網站單機模式：模板來自 files.json；進度只存在您的個人瀏覽器中，更換電腦前請務必點擊「匯出進度」保存。附錄 A 之外，條款 4–10 也必須完成。</p>`;
   }
   function renderTp() {
     const ed = canUp(), cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
     $("#tabTp").innerHTML = `
-      <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・${TS.mode === "srv" ? "存在區網伺服器，全員可下載" : TS.mode === "static" ? "來自 files.json（網站內建，唯讀）" : "存在這個瀏覽器（單機）"}</p></div>
-      ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">${TS.mode === "static" ? "模板來自網站的 files.json 與 Files 資料夾（唯讀）。新增模板：把檔案放進 Files，執行 build_files_json.py，再 push。" : "唯讀模式：可下載模板。管理員登入後可上傳。"}</p>`}
+      <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・來自 files.json（網站內建，唯讀）</p></div>
+      ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">模板來自網站的 files.json 與 Files 資料夾（唯讀）。新增模板請從原始碼層級（GitHub）加入。</p>`}
       <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpEdit('${f.id}')">對應</button><button class="mini" onclick="tpDel('${f.id}')">刪除</button>` : ""}</div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
     const dz = $("#drop"); if (dz) { dz.ondragover = e => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = e => { e.preventDefault(); dz.classList.remove("on"); tpPick(e.dataTransfer.files); }; }
   }
@@ -1042,7 +1049,7 @@ function boot() {
     $("#tpForm").scrollIntoView({ block: "nearest" });
   }
   async function loadTpl() { try { TL = await TPL.list(); } catch (e) { TL = []; } renderTp(); refresh(); }
-  const tryDo = async fn => { try { await fn(); } catch (e) { alert("操作失敗：" + (e && e.message || e) + "\n（若在沙盒或 file:// 環境，瀏覽器可能不允許儲存檔案；請改用 server.py）"); } };
+  const tryDo = async fn => { try { await fn(); } catch (e) { alert("操作失敗：" + (e && e.message || e) + "\n（若在沙盒或 file:// 環境，瀏覽器可能不允許儲存檔案）"); } };
   window.renderTplBox = no => {
     const bx = $("#tplBox"); if (!bx) return;
     const mine = TL.filter(f => f.ctl.includes(no)), other = TL.filter(f => !f.ctl.includes(no)), ed = canUp();
@@ -1096,17 +1103,15 @@ function boot() {
   
   sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); };
   
-  async function pullSrv() { try { const j = await (await fetch("api/progress", { cache: "no-store" })).json(); if (j && j.ts) Object.assign(P, j); } catch (e) {} }
   async function init() {
     // 讀取外部 users.json (若存在則覆蓋內建假資料)
     try { const ur = await fetch("users.json", { cache: "no-store" }); if (ur.ok) { const j = await ur.json(); if(Array.isArray(j)) USERS = j; } } catch (e) {}
     
-    try { const r = await fetch("api/info", { cache: "no-store" }); if (r.ok) { const j = await r.json(); TS.mode = "srv"; TS.auth = !!j.auth; } } catch (e) {}
-    if (TS.mode !== "srv") { try { const r = await fetch("files.json", { cache: "no-store" }); if (r.ok && Array.isArray(await r.json())) TS.mode = "static"; } catch (e) {} }
-    if (TS.mode === "srv") await pullSrv();
-    else { try { const r = await fetch("progress.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && j.ts > P.ts) Object.assign(P, j); } } catch (e) {} }
+    // 強制設定為靜態網頁模式
+    TS.mode = "static";
+    
+    try { const r = await fetch("progress.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && j.ts > P.ts) Object.assign(P, j); } } catch (e) {}
     await loadTpl();
-    if (TS.mode === "srv") setInterval(async () => { if (!canEdit()) { await pullSrv(); try { TL = await TPL.list(); } catch (e) {} refresh(); } }, 20000);
   }
   renderTp();
   init(); // 先載入資料但不執行 refresh (登入後才會顯示)
