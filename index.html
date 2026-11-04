@@ -197,6 +197,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid #3b82f6; outline-
 .mini { border: 1px solid var(--line); background: var(--panel-solid); border-radius: 8px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
 .ck { display: grid; gap: 2px; padding: 2px 6px 8px; font-size: 12.5px; }
 .ck label { cursor: pointer; }
+
+/* ---- 認真模式 (Dashboard Mode) ---- */
+body.serious-mode .app { display: block; }
+body.serious-mode #stage { display: none; }
+body.serious-mode #sb { height: 100vh; max-width: 100%; border-left: none; padding: 40px; transform: none; box-shadow: none; border-radius: 0; }
+body.serious-mode #sb h2 { font-size: 32px; }
+body.serious-mode .tabs button { font-size: 16px; padding: 12px; }
+body.serious-mode .rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 12px; }
 </style>
 </head>
 <body>
@@ -211,6 +219,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #3b82f6; outline-
     <div class="tools">
       <button class="tb" id="home">↗ 全景</button>
       <button class="tb" id="courtBtn">🏛️ 驗證機構</button>
+      <button class="tb" id="modeBtn">📊 認真模式</button>
       <button class="tb" id="menu">≡ 索引 / 進度</button>
     </div>
     <div class="hud">
@@ -424,7 +433,7 @@ const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
 // ==========================================
 const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; // 各島建議完成月份（依島序 01–12，可依專案調整）
 const PKEY = "iso27001_island_progress";
-const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, ts: 0 };
+const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, nc: {}, ts: 0 };
 const TS = { mode: "idb", auth: false, key: "", db: null, pend: [], edit: null };
 let TL = [];
 const hdr = () => TS.key ? { "X-Key": TS.key } : {};
@@ -438,6 +447,9 @@ const saveP = () => {
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isNA = no => !!P.na[no];
 const stOf = no => P.st[no] || 0;
+const ncOf = no => P.nc[no] || 0; // 0:無, 1:OFI, 2:Minor, 3:Major
+
+window.setNC = (no, v) => { if (!canEdit()) return; P.nc[no] = +v; saveP(); refresh(); };
 const zCtl = i => N.filter(n => n.z === i && !isNA(n.no));
 const zTot = i => zCtl(i).length;
 const zDone = i => zCtl(i).filter(n => stOf(n.no) === 2).length;
@@ -856,6 +868,18 @@ function boot() {
     }
   };
   $("#menu").onclick = () => sb.classList.toggle("open");
+  
+  $("#modeBtn").onclick = function() {
+    const isSerious = document.body.classList.toggle("serious-mode");
+    this.innerHTML = isSerious ? "🎮 3D 視角" : "📊 認真模式";
+    if (isSerious) {
+      $("#card").hidden = true; // 隱藏中央彈出卡片
+      sb.classList.add("open"); // 確保側邊欄展開
+    } else {
+      sb.classList.remove("open");
+    }
+    size(); // 觸發 Three.js 重新計算畫面比例
+  };
 
   const ray = new THREE.Raycaster(), nd = new THREE.Vector2(); let downPos = null;
   cvs.addEventListener("pointerdown", e => downPos = [e.clientX, e.clientY]);
@@ -919,6 +943,11 @@ function boot() {
     const exp = Zs.reduce((s, _, i) => s + (m >= ZDUE[i] ? zTot(i) : 0), 0), nNA = N.length - all;
     const sts = !m ? "請先設定專案起始月，系統才能判斷是否逾期" : tot >= exp ? "🟢 進度正常" : tot >= exp - 5 ? "🟡 略為落後" : "🔴 明顯落後";
     const next = N.filter(n => !isNA(n.no) && stOf(n.no) < 2).sort((a, b) => ZDUE[a.z] - ZDUE[b.z] || stOf(b.no) - stOf(a.no)).slice(0, 5);
+    
+    // 找出有缺失的項目
+    const hasNC = N.filter(n => ncOf(n.no) > 0).sort((a, b) => ncOf(b.no) - ncOf(a.no));
+    const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="document.body.classList.remove('serious-mode'); $('#modeBtn').innerText='📊 認真模式'; pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
+    
     $("#tabPg").innerHTML = `
       <input class="search" placeholder="客戶 / 專案名稱" ${dis} value="${esc(P.client)}" onchange="pgSet('client', this.value)">
       <label class="pgl">專案起始月 <input type="month" class="search" ${dis} style="width:auto; margin:0 0 0 8px;" value="${esc(P.start)}" onchange="pgSet('start', this.value)"></label>
@@ -926,6 +955,7 @@ function boot() {
         <p class="mute" style="margin:8px 0 0">${m ? `目前第 ${m} 個月，依計畫應完成 ${exp} 項。` : ""}${sts}${nNA ? `（另有 ${nNA} 項不適用）` : ""}</p></div>
       <h3>接下來該做</h3>
       <div class="rows">${next.map(n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${Zs[n.z].n.split(" ")[1]}・期限第 ${ZDUE[n.z]} 月${m > ZDUE[n.z] ? "・⚠️ 逾期" : ""}${stOf(n.no) === 1 ? "・進行中" : ""}</small></span></button>`).join("") || "<p class='mute'>🎉 全部完成，可以準備外部驗證了。</p>"}</div>
+      ${ncHTML}
       <h3>各島進度</h3>
       <div class="rows">${Zs.map((z, i) => { const s = zState(i), d = zDone(i), t = zTot(i); return `<button class="row" onclick="openZone(${i})"><span class="dot" style="background:${s.c}"></span><span class="rt">${z.n}<small>${s.t}・期限第 ${ZDUE[i]} 月${P.own[i] ? "・" + esc(P.own[i]) : ""}</small><div class="pgbar"><i style="width:${t ? d * 100 / t : 0}%; background:${s.c}"></i></div></span><em style="color:${s.c}">${d}/${t}</em></button>`; }).join("")}</div>
       <div class="pgact" style="flex-wrap:wrap"><button class="btn" onclick="pgSoA()">匯出 SoA (CSV)</button><button class="btn" style="background:#3b82f6" onclick="pgExp()">匯出進度</button><button class="btn" style="background:#3b82f6" ${dis} onclick="pgImp()">匯入</button><button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>${TS.mode === "srv" && TS.auth && !TS.key ? '<button class="btn" style="background:#6366f1" onclick="pgKey()">🔑 顧問模式</button>' : ""}</div>
@@ -948,6 +978,23 @@ function boot() {
   window.renderTplBox = no => {
     const bx = $("#tplBox"); if (!bx) return;
     const mine = TL.filter(f => f.ctl.includes(no)), other = TL.filter(f => !f.ctl.includes(no)), ed = canUp();
+    
+    // 在這裡加入缺失追蹤的下拉選單
+    const ncSelectHTML = `
+      <select ${canEdit() ? "" : "disabled"} onchange="setNC('${no}', this.value)" style="margin-left:8px; border-color:${ncOf(no) > 1 ? '#ef4444' : 'var(--line)'}; color:${ncOf(no) > 1 ? '#ef4444' : 'inherit'}">
+        ${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"].map((t, k) => `<option value="${k}" ${ncOf(no) === k ? "selected" : ""}>${t}</option>`).join("")}
+      </select>
+    `;
+    
+    // 將選單加到卡片中已有的 "zp" 區塊內
+    const zpBox = document.querySelector("#cc .zp");
+    if (zpBox && !zpBox.querySelector("select[onchange^='setNC']")) {
+       const selectNode = document.createElement("div");
+       selectNode.style.display = "inline-block";
+       selectNode.innerHTML = ncSelectHTML;
+       zpBox.insertBefore(selectNode.firstElementChild, zpBox.querySelector("label"));
+    }
+
     bx.innerHTML = (mine.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpUnlink('${f.id}', '${no}')">移除</button>` : ""}</div>`).join("") || "<p class='mute' style='margin:0 0 8px'>尚未放入模板。</p>")
       + (ed ? `<label class="btn" style="background:#3b82f6; display:inline-block; cursor:pointer;">＋ 上傳模板<input type="file" multiple hidden onchange="tpUp(this.files, '${no}')"></label>${other.length ? `<select onchange="tpLinkOne(this.value, '${no}')" style="margin-left:6px; max-width:150px;"><option value="">連結既有…</option>${other.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join("")}</select>` : ""}` : "");
   };
@@ -972,11 +1019,11 @@ function boot() {
   window.setWhy = (no, v) => { if (!canEdit()) return; P.why[no] = v; saveP(); };
   window.pgExp = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 1)], { type: "application/json" })); a.download = "progress.json"; a.click(); };
   window.pgImp = () => { const f = document.createElement("input"); f.type = "file"; f.accept = ".json"; f.onchange = () => f.files[0].text().then(t => { Object.assign(P, JSON.parse(t)); saveP(); refresh(); }); f.click(); };
-  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; saveP(); refresh(); } };
+  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; saveP(); refresh(); } };
   window.pgSoA = () => {
-    const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"];
-    const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "負責人", "模板檔案", "建議文件／紀錄"]];
-    N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n, n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
+    const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"], NC_ST = ["無缺失", "OFI", "Minor NC", "Major NC"];
+    const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "稽核缺失", "負責人", "模板檔案", "建議文件／紀錄"]];
+    N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n, n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], NC_ST[ncOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); a.download = `SoA_${P.client || "ISO27001"}.csv`; a.click();
   };
   window.pgKey = async () => { const k = prompt("輸入顧問金鑰（客戶唯讀，不需要輸入）"); if (!k) return; const r = await fetch("api/auth", { method: "POST", headers: { "X-Key": k } }); if (r.ok) { TS.key = k; try { sessionStorage.setItem("iso_key", k); } catch (e) {} renderTp(); refresh(); } else alert("金鑰不正確"); };
