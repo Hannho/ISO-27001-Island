@@ -857,10 +857,10 @@ function boot() {
   };
   $("#menu").onclick = () => sb.classList.toggle("open");
 
-  const ray = new THREE.Raycaster(), nd = new THREE.Vector2(); let dn = null;
-  cvs.addEventListener("pointerdown", e => dn = [e.clientX, e.clientY]);
+  const ray = new THREE.Raycaster(), nd = new THREE.Vector2(); let downPos = null;
+  cvs.addEventListener("pointerdown", e => downPos = [e.clientX, e.clientY]);
   cvs.addEventListener("pointerup", e => {
-    if (!dn || Math.hypot(e.clientX - dn[0], e.clientY - dn[1]) > 5) return;
+  if (!downPos || Math.hypot(e.clientX - downPos[0], e.clientY - downPos[1]) > 5) return;
     const r = cvs.getBoundingClientRect(); nd.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(nd, cam);
     const h = ray.intersectObjects(pick, false);
     if (h.length) {
