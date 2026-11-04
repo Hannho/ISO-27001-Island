@@ -25,19 +25,32 @@
   <div id="hint"><b style="color:var(--ink)">找不到 users.json，使用預設帳號：</b><br>
     • <b>admin</b>（管理員 → 儀表板）<br>• <b>audit</b>（稽核員 → 儀表板）<br>• <b>user</b>（一般員工 → 3D 島嶼）<br>密碼皆為 123</div>
 </div>
+<div id="diag" style="position:fixed;left:10px;bottom:8px;font:11px/1.5 monospace;color:#475569"></div>
+<script>
+  // 先建立登入函式，就算 app.js 載入失敗，按鈕也會顯示原因而不是沒反應
+  var showMsg = function (t) { var e = document.getElementById("loginErr"); e.textContent = t; e.style.display = "block"; };
+  window.addEventListener("error", function (e) { if (e.message && e.message !== "Script error.") showMsg("程式錯誤：" + e.message); });
+  window.doLogin = function () {
+    if (typeof loadUsers !== "function") return showMsg("app.js 沒有載入成功。請確認 app.js 和 index.html 在同一層、已 push，並用 Cmd+Shift+R 重新整理。");
+    try {
+      var u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPwd").value;
+      var m = USERS.find(function (x) { return x.u === u && x.p === p; });
+      if (!m) return showMsg("帳號或密碼錯誤" + (USERS_LOADED ? "" : "（目前使用預設帳號，密碼是 123；users.json 沒讀到）"));
+      sessionStorage.setItem("iso_session", JSON.stringify({ u: m.u, r: m.r, name: m.name }));
+      goHome(m);
+    } catch (err) { showMsg("登入失敗：" + err.message); }
+  };
+  var goHome = function (u) { location.href = (u.r === "admin" || u.r === "auditor") ? "dashboard.html" : "island.html"; };
+</script>
 <script src="app.js"></script>
 <script>
-// 登入頁：驗證後依角色導向不同頁面
-const goHome = u => { location.href = (u.r === "admin" || u.r === "auditor") ? "dashboard.html" : "island.html"; };
-if (currentUser) goHome(currentUser);
-loadUsers().then(ok => { if (!ok) document.getElementById("hint").style.display = "block"; });
-window.doLogin = () => {
-  const u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPwd").value;
-  const m = USERS.find(x => x.u === u && x.p === p);
-  if (!m) { document.getElementById("loginErr").style.display = "block"; return; }
-  try { sessionStorage.setItem("iso_session", JSON.stringify({ u: m.u, r: m.r, name: m.name })); } catch (e) {}
-  goHome(m);
-};
+  var d = document.getElementById("diag");
+  if (typeof loadUsers !== "function") { d.textContent = "app.js ✖ 未載入"; }
+  else {
+    d.textContent = "app.js ✔";
+    loadUsers().then(function (ok) { d.textContent += "　users.json " + (ok ? "✔" : "✖（使用預設帳號）"); if (!ok) document.getElementById("hint").style.display = "block"; });
+    if (currentUser) goHome(currentUser);
+  }
 </script>
 </body>
 </html>
