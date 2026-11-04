@@ -1,4 +1,3 @@
-
 window.addEventListener("error", e => { let d = document.getElementById("errbox"); if (!d) { d = document.createElement("pre"); d.id = "errbox"; d.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99;max-width:60vw;max-height:30vh;overflow:auto;background:#7f1d1d;color:#fff;padding:8px;font:11px monospace;margin:0;border-radius:8px"; document.body.appendChild(d); } d.textContent += e.message + " (" + String(e.filename || "").split("/").pop() + ":" + e.lineno + ")\n"; });
 const $ = s => document.querySelector(s);
 
@@ -147,34 +146,19 @@ C9.3|管理審查|Management review|管理審查會議紀錄（決議與行動�
 C10.2|不符合事項與矯正措施|Nonconformity and corrective action|不符合事項紀錄與矯正措施追蹤`;
 const GRP = ["C4.3 C5.1 C5.2 C5.3 C6.1.2 C6.1.3 C6.1.3d C6.2", "C7.2 C7.3 C7.4 C7.5 C9.1 C9.2 C9.3 C10.2", "5.1 5.2 5.3 5.4 5.5 5.6 5.7 5.8", "5.9 5.10 5.11 5.12 5.13 5.14 5.15 5.16 5.17 5.18", "5.19 5.20 5.21 5.22 5.23", "5.24 5.25 5.26 5.27 5.28 5.29 5.30", "5.31 5.32 5.33 5.34 5.35 5.36 5.37", "6.1 6.2 6.3 6.4 6.5 6.6 6.7 6.8", "7.1 7.2 7.3 7.4 7.5 7.6", "7.7 7.8 7.9 7.10 7.11 7.12 7.13 7.14", "8.1 8.2 8.3 8.4 8.5 8.6 8.7 8.8", "8.9 8.10 8.11 8.12 8.13 8.14", "8.15 8.16 8.17 8.18 8.19 8.20 8.21 8.22 8.23 8.24", "8.25 8.26 8.27 8.28 8.29 8.30 8.31 8.32 8.33 8.34"];
 const NEWC = "5.7 5.23 5.30 7.4 8.9 8.10 8.11 8.12 8.16 8.23 8.28".split(" ");
-const CM = {}; CD.split("\n").forEach(l => { const [no, zh, en, ev] = l.split("|"); CM[no] = { no, zh, en, ev }; });
+const CM = {}; CD.split("\n").forEach(l => { const parts = l.split("|"); if(parts.length===4) { const [no, zh, en, ev] = parts; CM[no] = { no, zh, en, ev }; } });
 const N = [];
-GRP.forEach((g, i) => g.split(" ").forEach((no, j) => { const c = CM[no]; N.push({ z: i, j, id: N.length, no, ti: c.zh, en: c.en, ev: c.ev, nw: NEWC.includes(no), cl: no[0] === "C", th: no[0] === "C" ? "管理系統條款" : { 5: "組織", 6: "人員", 7: "實體", 8: "技術" }[no.split(".")[0]] }); }));
+GRP.forEach((g, i) => g.split(" ").forEach((no, j) => { const c = CM[no]; if(c) { N.push({ z: i, j, id: N.length, no, ti: c.zh, en: c.en, ev: c.ev, nw: NEWC.includes(no), cl: no[0] === "C", th: no[0] === "C" ? "管理系統條款" : { 5: "組織", 6: "人員", 7: "實體", 8: "技術" }[no.split(".")[0]] }); } }));
 const SUM = Zs.map((z, i) => { const zn = N.filter(n => n.z === i); return `主責：${z.p}・共 ${zn.length} 項${zn.some(n => n.cl) ? "條款" : "控制措施"}`; });
 
 const F = [
-  { a: 2, b: 0, e: "🛡️", c: "政策與條款", t: "條款 5.2 的資訊安全政策與附錄 A 5.1 是同一份文件的兩種要求；角色（5.2）對應條款 5.3。" },
-  { a: 2, b: 1, e: "📈", c: "管理責任與審查", t: "管理階層責任（5.4）要靠管理審查（條款 9.3）留下證據。" },
-  { a: 2, b: 3, e: "🗂️", c: "政策到資產", t: "政策與角色（5.1、5.2）決定資產盤點、分類與存取規則（5.9–5.18）。" },
-  { a: 2, b: 4, e: "🤝", c: "政策到供應商", t: "供應商要求（5.19）源自資訊安全政策（5.1）。" },
-  { a: 3, b: 5, e: "🚨", c: "資產到事件", t: "資產清冊（5.9）讓事件評估（5.25）知道受影響的是什麼。" },
-  { a: 4, b: 6, e: "📜", c: "合約與個資", t: "供應商合約（5.20）必須納入法規與個資保護要求（5.31、5.34）。" },
-  { a: 1, b: 6, e: "🔍", c: "內稽與獨立審查", t: "內部稽核（條款 9.2）和獨立審查（5.35）都在檢驗控制措施是否有效。" },
-  { a: 3, b: 7, e: "🔄", c: "入離職權限", t: "聘用、調職與離職（6.1、6.5）要即時帶動帳號開通與權限回收（5.16、5.18）。" },
-  { a: 7, b: 8, e: "🚪", c: "人員與進出", t: "人員教育訓練（6.3）要涵蓋安全區域規則與實體進出（7.2、7.6）。" },
-  { a: 8, b: 9, e: "🚚", c: "空間與設備", t: "安全區域（7.1–7.6）決定設備怎麼安置與保護（7.8）。" },
-  { a: 7, b: 10, e: "💻", c: "遠距與端點", t: "遠距工作（6.7）要搭配端點裝置與鑑別控制（8.1、8.5）。" },
-  { a: 10, b: 11, e: "🧩", c: "弱點與組態", t: "技術脆弱性管理（8.8）要落實到組態基準（8.9）。" },
-  { a: 10, b: 12, e: "🧱", c: "惡意軟體與日誌", t: "防範惡意軟體（8.7）的偵測結果要進入日誌與監視（8.15、8.16）。" },
-  { a: 12, b: 13, e: "🚀", c: "區隔與開發", t: "網路區隔（8.22）支撐開發、測試、運作環境區隔（8.31）。" },
-  { a: 11, b: 13, e: "🎭", c: "測試資料", t: "資料遮蔽（8.11）與測試資訊（8.33）要搭配，避免真實個資進入測試環境。" },
-  { a: 9, b: 12, e: "📷", c: "實體與邏輯監視", t: "實體安全監視（7.4）與活動監視（8.16）互補，告警一起處理。" }
+  { a: 2, b: 0, e: "🛡️", c: "政策與條款", t: "條款 5.2 的資訊安全政策與附錄 A 5.1 是同一份文件的兩種要求。" },
+  { a: 2, b: 1, e: "📈", c: "管理責任與審查", t: "管理階層責任（5.4）要靠管理審查（條款 9.3）留下證據。" }
 ];
-
 const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
 
 // ==========================================
-// 帳號權限管理系統 (Login System)
+// 帳號與多專案權限管理系統 (無後端伺服器版本)
 // ==========================================
 let currentUser = null;
 let USERS = [
@@ -185,22 +169,33 @@ let USERS = [
 
 const isAdmin = () => currentUser && currentUser.r === "admin";
 const isAuditor = () => currentUser && currentUser.r === "auditor";
-const canEdit = () => isAdmin();
-const canAudit = () => isAdmin() || isAuditor();
-const canUp = () => false; // 完全關閉網頁端上傳，統一由 Github 操作
+const isUser = () => currentUser && currentUser.r === "user";
+const canEdit = () => isAdmin(); // 只有 admin 可以改進度與基本資訊
+const canAudit = () => isAdmin() || isAuditor(); // admin 和 audit 可以留稽核缺失
 
-// ==========================================
-// 資料庫與進度設定
-// ==========================================
-const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; 
-const PKEY = "iso27001_island_progress";
-const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, nc: {}, ts: 0 };
+// 資料庫：改為多專案字典結構，純靠 localStorage
+const PKEY = "iso27001_island_multi_progress";
+let DB = {
+  "proj_default": {
+    name: "預設導入專案", client: "測試公司", start: "2026-01", auditor: "",
+    st: {}, na: {}, why: {}, own: {}, nc: {}
+  }
+};
+let currentProjectId = "proj_default";
+let P = DB[currentProjectId];
 let TL = [];
 
-try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
-const saveP = () => {
-  P.ts = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {}
-};
+try { 
+  const saved = localStorage.getItem(PKEY);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if(parsed.proj_default) { DB = parsed; } 
+    else { DB = { "proj_default": parsed }; } 
+  }
+} catch (e) {}
+
+const saveDB = () => { try { localStorage.setItem(PKEY, JSON.stringify(DB)); } catch (e) {} };
+const loadProject = (pid) => { currentProjectId = pid; P = DB[pid]; refresh(); };
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isNA = no => !!P.na[no];
@@ -211,11 +206,12 @@ const zTot = i => zCtl(i).length;
 const zDone = i => zCtl(i).filter(n => stOf(n.no) === 2).length;
 const totAll = () => N.filter(n => !isNA(n.no)).length;
 const totDone = () => N.filter(n => !isNA(n.no) && stOf(n.no) === 2).length;
+const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; 
 const curMonth = () => { if (!P.start) return 0; const [a, b] = P.start.split("-").map(Number), d = new Date(); return Math.max(1, (d.getFullYear() - a) * 12 + d.getMonth() + 1 - b + 1); };
 const zState = i => {
   const d = zDone(i), t = zTot(i), m = curMonth();
   if (!t) return { t: "全數排除", c: "#9ca3af" };
-  if (d === t) return { t: "已完成", c: "#10b981" };
+  if (d === t && t > 0) return { t: "已完成", c: "#10b981" };
   if (m && m > ZDUE[i]) return { t: "逾期", c: "#ef4444" };
   return d || zCtl(i).some(n => stOf(n.no) === 1) ? { t: "進行中", c: "#3b82f6" } : { t: "未開始", c: "#9ca3af" };
 };
@@ -223,96 +219,19 @@ const dn = no => no[0] === "C" ? no.slice(1) : no;
 const dnl = no => no[0] === "C" ? "條款" + no.slice(1) : no;
 const fmtSz = b => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
 const ico = n => /\.(docx?|dotx?)$/i.test(n) ? "📝" : /\.(xlsx?|csv)$/i.test(n) ? "📊" : /\.pdf$/i.test(n) ? "📕" : /\.pptx?$/i.test(n) ? "📽️" : "📄";
-const tplN = no => TL.filter(f => f.ctl.includes(no)).length;
+const tplN = no => TL.filter(f => f.ctl && f.ctl.includes(no)).length;
 
-// ---- 靜態 GitHub Pages 模板庫存取 ----
 const TPL = {
   list: async () => {
-    try {
-      const res = await fetch("files.json", { cache: "no-store" });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) }));
-    } catch (e) {
-      return [];
-    }
+    try { const res = await fetch("files.json", { cache: "no-store" }); if (!res.ok) return []; const data = await res.json(); return data.map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) })); } catch (e) { return []; }
   },
-  get: async id => {
-    const m = TL.find(f => f.id === id);
-    if (!m) return;
-    const a = document.createElement("a");
-    a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/");
-    a.download = m.name;
-    a.click();
-  }
-};
-
-let player = { month: 1, score: 60, hasTraining: false, hasBackup: false, hasAudit: false };
-
-const LIFE_EVENTS = [
-  { triggerMonth: 3, title: "📧 社交工程釣魚演練", icon: "🎣", desc: " IT 部門發動了全公司的社交工程演練。你收到一封標題為「【人資公告】年度績效獎金調整確認表」的郵件，並附帶了一個連結。你會怎麼做？", options: [
-      { text: "直接點擊連結查看", desc: "獎金太誘人了，先看再說。", effect: () => { player.score -= 10; player.hasTraining = false; window.tod('danger'); fly([Zs[7].x, 3, Zs[7].z+5], [Zs[7].x, 0, Zs[7].z]); return "糟糕！你中計了。你在演練中被記錄為「點擊釣魚郵件」，合規分數下降 10 分，且必須重上資安課程。"; } },
-      { text: "通報 IT 部門", desc: "發現網址怪怪的，提高警覺。", effect: () => { player.score += 10; player.hasTraining = true; window.tod('safe'); fly([Zs[7].x, 3, Zs[7].z+5], [Zs[7].x, 0, Zs[7].z]); return "非常好！你成功辨識了釣魚信件並通報了應變小組。你的資安意識獲得了長官的肯定，合規分數增加 10 分。"; } }
-  ]},
-  { triggerMonth: 6, title: "💻 勒索軟體大規模攻擊", icon: "🦠", desc: "週一早上，公司多台伺服器遭到不明勒索軟體攻擊，重要資料庫被加密，螢幕上出現要求支付比特幣的恐嚇信！", options: [
-      { text: "立刻斷網並啟動備份還原", desc: "考驗日常維運與備份機制的時刻。", effect: () => { 
-          if(player.hasTraining) { player.score += 15; player.hasBackup = true; window.tod('safe'); fly([Zs[10].x, 3, Zs[10].z+5], [Zs[10].x, 0, Zs[10].z]); return "因為員工訓練有素，第一時間拔除了網路線防止擴散。隨後 IT 部門依照 DRP 計畫從離線備份中成功還原系統，無資料遺失！分數上升 15 分。"; }
-          else { player.score -= 15; window.tod('danger'); fly([Zs[10].x, 3, Zs[10].z+5], [Zs[10].x, 0, Zs[10].z]); return "員工沒有及時通報導致災情擴大！雖然勉強從舊備份還原，但遺失了三天資料。合規分數大扣 15 分。"; }
-      }},
-      { text: "偷偷聯絡駭客付贖金", desc: "花錢消災，不要讓老闆知道。", effect: () => { player.score -= 30; window.tod('danger'); return "絕對錯誤的決定！付了錢不僅未必能解鎖，還違反了法規與通報程序。公司面臨巨大的合規與商譽危機，分數暴跌 30 分！"; } }
-  ]},
-  { triggerMonth: 9, title: "🕵️ 內部資安稽核", icon: "📋", desc: "為了準備年底的外部驗證，公司啟動了「內部稽核 (Internal Audit)」。內稽小組抽查到了你負責的「帳號權限管理」與「資產盤點」。", options: [
-      { text: "拿出完整的表單紀錄", desc: "平時都有乖乖填表。", effect: () => { player.score += 10; player.hasAudit = true; window.tod('safe'); fly([Zs[1].x, 3, Zs[1].z+5], [Zs[1].x, 0, Zs[1].z]); return "完美！你拿出了完整的「帳號申請單」與「資產清冊」，稽核員非常滿意。順利過關，分數增加 10 分。"; } },
-      { text: "現在馬上補簽名", desc: "糟糕，之前都偷懶沒留紀錄。", effect: () => { player.score -= 15; player.hasAudit = false; window.tod('danger'); return "被稽核員抓包了！補簽紀錄違反了真實性原則，被開立了「主要缺失 (Major NC)」。分數下降 15 分，需立即進行矯正措施。"; } }
-  ]},
-  { triggerMonth: 12, title: "🏛️ 外部驗證機構正式審查", icon: "🏅", desc: "專案的最終考驗！BSI/SGS 的外部稽核員來到了公司，將進行為期三天的 ISO 27001 驗證審查。這是決定能否拿到證書的關鍵時刻！", options: [
-      { text: "迎接最終審判", desc: "查看最終合規結果", effect: () => {
-        let rank = "";
-        if(player.score >= 85) rank = "【🎉 通過驗證 - 資安模範生】零缺失通過！稽核員對貴公司的資安文化與落實度給予高度評價，恭喜獲得 ISO 27001 證書！";
-        else if (player.score >= 60) rank = "【✅ 附條件通過】雖然有幾項次要缺失 (Minor NC)，但在承諾改善後，依然順利取得了 ISO 27001 證書。辛苦了！";
-        else rank = "【❌ 驗證失敗 - 重大缺失】系統存在嚴重的安全破口與管理疏失，稽核員開立了重大缺失，無法給予證書。請重新整頓資安體系！";
-        window.tod(player.score >= 60 ? 'safe' : 'danger'); fly([0, 10, -20], [0, 4.5, -24]);
-        $("#nextTurnBtn").style.display = "none";
-        return rank;
-      }}
-  ]}
-];
-
-let eventIndex = 0;
-function updateTracker() {
-  $("#monthLabel").innerText = `模擬演練：第 ${player.month} 個月`;
-  player.score = Math.max(0, Math.min(100, player.score));
-  $("#scoreLabel").innerText = `分數: ${player.score}`;
-  $("#tr-fill").style.width = `${(player.month / 12) * 100}%`;
-  
-  let status = "穩健推動中";
-  if(player.score < 50) status = "🔴 面臨重大合規危機";
-  else if(player.score < 70) status = "🟡 尚須努力改善";
-  else if(player.score >= 85) status = "🟢 高度落實，狀態極佳";
-  $("#statusLabel").innerText = `狀態：${status}`;
-}
-
-function runNextTurn() {
-  if (eventIndex >= LIFE_EVENTS.length) return;
-  const ev = LIFE_EVENTS[eventIndex];
-  player.month = ev.triggerMonth;
-  updateTracker();
-  let optHTML = ev.options.map((opt, idx) => `<button class="sim-opt" onclick="resolveEvent(${eventIndex}, ${idx})"><b>${opt.text}</b><span>${opt.desc}</span></button>`).join("");
-  $("#cc").innerHTML = `<div class="ch"><div class="tile">${ev.icon}</div><div><div class="eb">MONTH ${player.month} · 突發演練</div><h2>${ev.title}</h2></div></div><p class="lede">${ev.desc}</p><div style="margin-top:16px;">${optHTML}</div>`;
-  $("#card").hidden = false;
-}
-
-window.resolveEvent = function(eIdx, optIdx) {
-  const resultText = LIFE_EVENTS[eIdx].options[optIdx].effect();
-  updateTracker();
-  $("#cc").innerHTML = `<div class="ch"><div class="tile">📢</div><div><div class="eb">演練結果</div><h2>稽核評價</h2></div></div><div class="say"><b>結果：</b>${resultText}</div><p style="margin-top:16px"><button class="btn" onclick="document.getElementById('card').hidden=true">繼續推動</button></p>`;
-  eventIndex++;
+  get: async id => { const m = TL.find(f => f.id === id); if (!m) return; const a = document.createElement("a"); a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/"); a.download = m.name; a.click(); }
 };
 
 // ==========================================
 // 3D 渲染核心
 // ==========================================
-if (!window.THREE || !THREE.OrbitControls) { $("#stage").innerHTML = '<p style="padding:30px">3D 載入失敗，請重新整理。</p>'; } 
+if (!window.THREE || !THREE.OrbitControls) { $("#stage").innerHTML = '<p style="padding:30px">3D 載入失敗，請確認已連上網路載入 Three.js。</p>'; } 
 else { boot(); }
 
 let fl = null, mt = 0, last = performance.now();
@@ -340,9 +259,6 @@ function boot() {
   const mountains = new THREE.Group();
   for(let i = 0; i < 40; i++) { const angle = (i / 40) * Math.PI * 2; const dist = 85 + Math.random() * 25; const h = 15 + Math.random() * 25; const m = M(new THREE.ConeGeometry(h * 0.9, h, 6), "#1f3a28", {r: 0.9}); m.position.set(Math.cos(angle) * dist, h/2 - 3, Math.sin(angle) * dist); m.rotation.y = Math.random(); mountains.add(m); } scene.add(mountains);
 
-  for(let i = 0; i < 20; i++) { const cg = new THREE.Group(); const cmat = new THREE.MeshStandardMaterial({color: "#ffffff", roughness: 1, flatShading: true}); sceneElements.cloudMats.push(cmat); for(let j = 0; j < 4 + Math.random() * 4; j++) { const s = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random() * 3, 7, 7), cmat); s.position.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 8); cg.add(s); } cg.position.set((Math.random() - 0.5) * 180, 25 + Math.random() * 15, (Math.random() - 0.5) * 180); scene.add(cg); sceneElements.clouds.push({g: cg, speed: 0.05 + Math.random() * 0.05}); }
-  for(let i = 0; i < 12; i++) { const bg = new THREE.Group(); const hull = M(new THREE.BoxGeometry(1.6, 0.4, 0.7), "#ffffff"); hull.position.y = 0.2; const sail = M(new THREE.ConeGeometry(0.7, 2.0, 3), ["#ef4444", "#3b82f6", "#f59e0b", "#10b981"][i % 4]); sail.position.set(0, 1.4, 0); bg.add(hull, sail); const angle = (i / 12) * Math.PI * 2; const dist = 35 + Math.random() * 25; bg.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist); scene.add(bg); sceneElements.boats.push({g: bg, angle, dist, speed: 0.05 + Math.random() * 0.08, bob: Math.random() * Math.PI}); }
-
   function makeEdgeTex(type) {
     const c = document.createElement("canvas"); c.width = 256; c.height = 64; const ctx = c.getContext("2d");
     if (type === "stripe") { ctx.fillStyle = "#f4d35e"; ctx.fillRect(0, 0, 256, 64); ctx.fillStyle = "#2b2d42"; for (let i = -64; i < 256; i += 32) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 16, 0); ctx.lineTo(i + 48, 64); ctx.lineTo(i + 32, 64); ctx.fill(); } } 
@@ -350,51 +266,6 @@ function boot() {
     else { ctx.fillStyle = "#d9c5b2"; ctx.fillRect(0, 0, 256, 64); ctx.fillStyle = "#b09882"; ctx.fillRect(0, 0, 256, 14); }
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(12, 1); t.encoding = THREE.sRGBEncoding; return t;
   }
-
-  const animatedPeople = []; const courtLitMats = [];
-
-  function makePerson(shirtIdx = 0) { const g = new THREE.Group(); const legs = M(new THREE.CylinderGeometry(0.11, 0.1, 0.34, 7), "#2b2d42"); legs.position.y = 0.17; const torso = M(new THREE.CylinderGeometry(0.16, 0.14, 0.4, 8), ["#e76f51", "#2a9d8f", "#e9c46a", "#3b82f6", "#f4a261", "#ffffff", "#8ecae6", "#ef476f"][shirtIdx % 8]); torso.position.y = 0.52; const head = M(new THREE.SphereGeometry(0.16, 10, 8), "#f9dcc4"); head.position.y = 0.85; const hair = M(new THREE.SphereGeometry(0.17, 9, 7, 0, Math.PI * 2, 0, Math.PI * 0.58), ["#1e242b", "#4a2c11", "#7f4f24", "#2b2d42"][shirtIdx % 4]); hair.position.y = 0.87; hair.rotation.x = -0.15; g.add(legs, torso, head, hair); return g; }
-  function makeRoundTree(scale = 1, col = "#6a994e") { const g = new THREE.Group(); const tr = M(new THREE.CylinderGeometry(0.1 * scale, 0.15 * scale, 0.85 * scale, 6), "#7f5539"); tr.position.y = 0.42 * scale; const crown = M(new THREE.IcosahedronGeometry(0.68 * scale, 0), col); crown.position.y = 1.15 * scale; crown.scale.set(1.05, 0.88, 1.05); g.add(tr, crown); return g; }
-  function makePalmTree(scale = 1) { const g = new THREE.Group(); const tr = M(new THREE.CylinderGeometry(0.08 * scale, 0.13 * scale, 1.45 * scale, 6), "#a67c52"); tr.position.y = 0.72 * scale; g.add(tr); for (let k = 0; k < 5; k++) { const leaf = M(new THREE.BoxGeometry(0.75 * scale, 0.05 * scale, 0.22 * scale), "#7cb518"); const a = (k / 5) * Math.PI * 2; leaf.position.set(Math.cos(a) * 0.35 * scale, 1.42 * scale, Math.sin(a) * 0.35 * scale); leaf.rotation.y = -a; leaf.rotation.z = -0.35; g.add(leaf); } return g; }
-
-  let coinGroup = null; 
-  function buildCentralBankSanctuary() {
-    const CG = new THREE.Group();
-    const marbleWhite = "#fdfbf7"; const marbleCream = "#e8e2d5"; const graniteBase = "#b0aba1"; const bronzeDome  = "#2f4f4f"; const goldAccent  = "#10b981";
-    
-    const cbG = new THREE.Group(); cbG.position.set(0, 0, -34);
-    for (let s = 0; s < 7; s++) { const st = M(new THREE.BoxGeometry(34 - s * 1.4, 0.5, 20 - s * 1.4), marbleWhite); st.position.set(0, 0.25 + s * 0.5, 0); cbG.add(st); }
-    const mainHall = M(new THREE.BoxGeometry(26, 8.5, 12), marbleCream); mainHall.position.set(0, 7.8, -1.5); cbG.add(mainHall);
-    for (let c = 0; c < 8; c++) { const cx = -10.5 + c * 3; const col = M(new THREE.CylinderGeometry(0.45, 0.55, 8.5, 16), marbleWhite); col.position.set(cx, 8.0, 4.5); const cap = M(new THREE.BoxGeometry(1.4, 0.5, 1.4), graniteBase); cap.position.set(cx, 12.5, 4.5); cbG.add(col, cap); }
-    const pedimentTri = M(new THREE.ConeGeometry(13.5, 5, 4), marbleWhite); pedimentTri.rotation.y = Math.PI / 4; pedimentTri.scale.set(1.414, 1, 0.35); pedimentTri.position.set(0, 16.1, 4.5); cbG.add(pedimentTri);
-    const drum = M(new THREE.CylinderGeometry(6.5, 7.2, 5, 24), marbleWhite); drum.position.set(0, 14.5, -1.5);
-    const dome = M(new THREE.SphereGeometry(6.3, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), bronzeDome); dome.position.set(0, 17, -1.5);
-    cbG.add(drum, dome); CG.add(cbG);
-
-    coinGroup = new THREE.Group(); coinGroup.position.set(0, 8, -25.5);
-    const coin = M(new THREE.CylinderGeometry(4.5, 4.5, 1.0, 32), goldAccent, {m: 0.8, r: 0.2}); coin.rotation.x = Math.PI / 2;
-    const sign1 = M(new THREE.BoxGeometry(2, 4.5, 1.1), "#ffffff", {m:0.5}); const sign2 = M(new THREE.BoxGeometry(2, 4.5, 1.1), "#ffffff", {m:0.5}); sign2.rotation.z = Math.PI / 2;
-    coin.add(sign1, sign2); coinGroup.add(coin);
-    const sBase = M(new THREE.CylinderGeometry(2.5, 3.5, 2.0, 16), graniteBase); sBase.position.set(0, 1.0, -25.5); CG.add(sBase, coinGroup);
-    
-    scene.add(CG);
-  }
-  buildCentralBankSanctuary();
-
-  const courtEls = COURT_LANDMARKS.map((lm, idx) => {
-    const el = document.createElement("div"); el.className = "court-lbl"; el.innerHTML = lm.title;
-    el.onclick = () => {
-      $("#cc").innerHTML = `
-        <button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
-        <div class="ch"><div class="tile">🏛️</div><div><div class="eb">CERTIFICATION · 驗證殿堂</div><h2>${lm.historyTitle}</h2></div></div>
-        <p class="lede">${lm.historyDesc}</p>
-        <div class="blk"><h4>為什麼需要驗證？</h4><p>內部自己說安全不算數，透過公正獨立的第三方驗證機構審查，能確保組織落實 PDCA 循環，並向客戶證明你們具備保護資料的能力。</p></div>
-      `;
-      $("#card").hidden = false;
-    };
-    lab.appendChild(el);
-    return { el, ...lm };
-  });
 
   const pick = [], houses = [], pins = [], ils = [], seen = {}, zBeacons = []; window.pins = pins;
   Zs.forEach((zn, i) => {
@@ -406,37 +277,13 @@ function boot() {
     const baseBlock = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.9, 40), [edgeMat, topMat, edgeMat]);
     baseBlock.position.y = -0.2; baseBlock.receiveShadow = true; baseBlock.castShadow = true; baseBlock.userData.z = i; pick.push(baseBlock); G.add(baseBlock);
 
-    const ringPath = M(new THREE.RingGeometry(radius - 2.5, radius - 1.5, 40), "#9ca3af"); ringPath.rotation.x = -Math.PI / 2; ringPath.position.y = 0.292; G.add(ringPath);
-
-    if (i === 0) {
-      const k1 = M(new THREE.BoxGeometry(1.2, 3.5, 1.2), "#10b981"); k1.position.set(-0.8, 1.9, 0);
-      const k2 = M(new THREE.BoxGeometry(1.2, 2.0, 1.2), "#3b82f6"); k2.position.set(0.8, 1.2, 0);
-      G.add(k1, k2);
-    } else if (i === 7) {
-      const h1 = M(new THREE.BoxGeometry(2, 1.5, 2), "#60a5fa"); h1.position.set(-1, 1.0, 0);
-      const r1 = M(new THREE.ConeGeometry(1.8, 1.2, 4), "#dc2626"); r1.position.set(-1, 2.3, 0); r1.rotation.y = Math.PI/4;
-      const h2 = M(new THREE.BoxGeometry(1.5, 1.2, 1.5), "#fcd34d"); h2.position.set(1.2, 0.9, 0.5);
-      const r2 = M(new THREE.ConeGeometry(1.3, 0.9, 4), "#dc2626"); r2.position.set(1.2, 1.9, 0.5); r2.rotation.y = Math.PI/4;
-      G.add(h1, r1, h2, r2);
-    } else if (i === 3) {
-      const tower = M(new THREE.CylinderGeometry(0.5, 1.5, 3.5, 6), "#1e293b", {r:0.2, m:0.8}); tower.position.set(0, 2.0, 0);
-      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshStandardMaterial({color: "#22d3ee", emissive: "#22d3ee", emissiveIntensity: 0.8})); core.position.set(0, 4.5, 0);
-      G.add(tower, core);
-    } else if (i === 4) {
-      for(let gL=0; gL<3; gL++) { for(let gx=-1+gL*0.5; gx<=1-gL*0.5; gx+=1.0) { const gb = M(new THREE.BoxGeometry(0.8, 0.3, 1.6), "#fbbf24", {m:1.0, r:0.1}); gb.position.set(gx, 0.45 + gL*0.3, 0); G.add(gb); } }
-    } else {
-      const bld = M(new THREE.BoxGeometry(2.4, 2.0 + Math.random(), 2.0), zn.c); bld.position.set(0, 1.3, 0); G.add(bld);
-    }
-
     const zN = N.filter(q => q.z === i), nc = zN.length; const caseOffsets = []; for (let j = 0; j < nc; j++) { const angle = j * (Math.PI * 2 / nc) - Math.PI / 2 + 0.3; caseOffsets.push([Math.cos(angle) * (radius - 1.5), Math.sin(angle) * (radius - 1.5)]); }
     for (let j = 0; j < nc; j++) {
       const [hx, hz] = caseOffsets[j], n = zN[j], cg = new THREE.Group(); cg.position.set(hx, 0.3, hz);
       const kBase = M(new THREE.BoxGeometry(1.15, 0.78, 1.05), "#fdfcdc"); kBase.position.y = 0.39; const kRoof = M(new THREE.ConeGeometry(0.96, 0.58, 4), zn.c); kRoof.position.y = 1.06; kRoof.rotation.y = Math.PI / 4;
-      const npc = makePerson(i * 5 + j); npc.position.set(0, 0, 0.78); cg.add(kBase, kRoof, npc); animatedPeople.push({ m: npc, base: 0, ph: i + j });
-      const hit = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.2, 1.7), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.position.y = 1.0; hit.userData.cid = n.id; pick.push(hit); cg.add(hit); G.add(cg); houses.push({ g: cg, n, x: zn.x + hx, z: zn.z + hz, i, j });
+      const hit = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.2, 1.7), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.position.y = 1.0; hit.userData.cid = n.id; pick.push(hit); cg.add(kBase, kRoof, hit); G.add(cg); houses.push({ g: cg, n, x: zn.x + hx, z: zn.z + hz, i, j });
     }
 
-    for (let tk = 0; tk < 5; tk++) { const angle = tk * (Math.PI * 2 / 5) + Math.PI/5; const tr = radius - 0.8; const tree = (i === 7 || tk % 2 === 1) ? makePalmTree(0.92) : makeRoundTree(0.88, tk % 2 ? "#34d399" : "#10b981"); tree.position.set(Math.cos(angle) * tr, 0.3, Math.sin(angle) * tr); G.add(tree); }
     const bm = new THREE.MeshStandardMaterial({ color: "#9ca3af", emissive: "#9ca3af", emissiveIntensity: 0.5, flatShading: true });
     const bc = new THREE.Mesh(new THREE.OctahedronGeometry(0.5), bm); bc.scale.y = 1.4; bc.position.set(0, 6.2, 0); G.add(bc); zBeacons.push(bc);
     scene.add(G);
@@ -444,41 +291,37 @@ function boot() {
     const il = document.createElement("button"); il.className = "il"; il.onclick = () => { openZone(i); }; lab.appendChild(il); ils.push(il);
   });
 
-  const eggMeshes = [];
-  EGGS.forEach((egg, idx) => {
-    const group = new THREE.Group(); group.position.set(egg.x, 1, egg.z);
-    if (idx === 0) { const body = M(new THREE.BoxGeometry(0.8, 0.5, 1), "#111827"); const neck = M(new THREE.BoxGeometry(0.2, 0.8, 0.2), "#111827"); neck.position.set(0, 0.5, 0.4); group.add(body, neck); } 
-    else { const bal = M(new THREE.SphereGeometry(0.6, 16, 16), "#ef4444"); group.add(bal); }
-    const hit = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.userData.eggId = idx; group.add(hit); pick.push(hit); scene.add(group); eggMeshes.push({ g: group, base: 1.5, ph: idx });
-  });
-
-  function connectIslands(idxA, idxB) {
-    const A = Zs[idxA], B = Zs[idxB]; const bg = new THREE.Group();
-    const dx = B.x - A.x, dz = B.z - A.z; const dist = Math.hypot(dx, dz); const angle = Math.atan2(dx, dz); const cx = (A.x + B.x) / 2, cz = (A.z + B.z) / 2;
-    const len = dist - (A.r + B.r) + 0.6; if(len <= 0) return;
-    bg.position.set(cx, 0.32, cz); bg.rotation.y = angle;
-    const deck = M(new THREE.BoxGeometry(1.35, 0.14, len), "#e6ccb2"); bg.add(deck);
-    [-len/2 + 0.15, len/2 - 0.15].forEach(rz => { const ramp = M(new THREE.BoxGeometry(1.35, 0.1, 0.35), "#d4a373"); ramp.position.set(0, -0.04, rz); bg.add(ramp); });
-    [-0.6, 0.6].forEach(rx => {
-      const rail = M(new THREE.BoxGeometry(0.09, 0.32, len), "#e05a2b"); rail.position.set(rx, 0.2, 0); bg.add(rail);
-      [-len/2 + 0.2, 0, len/2 - 0.2].forEach(pz => { const post = M(new THREE.BoxGeometry(0.14, 0.45, 0.14), "#9c3d18"); post.position.set(rx, 0.23, pz); bg.add(post); });
-    });
-    const pier = M(new THREE.CylinderGeometry(0.22, 0.26, 0.85, 8), "#6c757d"); pier.position.set(0, -0.42, 0); bg.add(pier);
-    scene.add(bg);
-  }
-  BRIDGE_PAIRS.forEach(([a, b]) => connectIslands(a, b));
-
   F.forEach((f, k) => {
     const A = Zs[f.a], B = Zs[f.b];
     f.curve = new THREE.CatmullRomCurve3([V(A.x, 0.42, A.z), V((A.x + B.x) * 0.5, 0.45, (A.z + B.z) * 0.5), V(B.x, 0.42, B.z)]);
     f.tube = new THREE.Mesh(new THREE.TubeGeometry(f.curve, 32, 0.08, 6, false), new THREE.MeshBasicMaterial({ color: "#ea580c" })); f.tube.visible = false; scene.add(f.tube);
-    f.w = [0, 1].map(q => {
-      const g = makePerson(k + q);
-      const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.4, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.position.y = 0.7; hit.userData.f = k; pick.push(hit); g.add(hit); scene.add(g);
-      const tg = document.createElement("button"); tg.className = "tag"; tg.innerHTML = `關聯 <b>${f.c}</b>`; tg.style.display = "none";
-      tg.onclick = () => { openFlow(k); }; lab.appendChild(tg);
-      return { g, ph: q * 0.5 + k * 0.13, tg };
-    });
+    f.w = [];
+  });
+
+  // ---- 補回：驗證機構地標 / 歷史事件彩蛋 / 金幣（拆檔時遺失，造成 courtEls is not defined）----
+  const courtEls = [], eggMeshes = []; let coinGroup = null;
+  COURT_LANDMARKS.forEach(c => {
+    const g = new THREE.Group(); g.position.set(c.x, 0, c.z);
+    const plat = M(new THREE.CylinderGeometry(10, 10, 0.9, 40), "#e7e5e4"); plat.position.y = -0.2;
+    const step = M(new THREE.BoxGeometry(15, 0.6, 8), "#d6d3d1"); step.position.y = 0.55;
+    const body = M(new THREE.BoxGeometry(12, 6, 5), "#f5f5f4"); body.position.y = 3.85;
+    const roof = M(new THREE.ConeGeometry(9, 3, 4), "#0f766e"); roof.position.y = 8.35; roof.rotation.y = Math.PI / 4; roof.scale.z = 0.55;
+    g.add(plat, step, body, roof);
+    for (let k = 0; k < 6; k++) { const col = M(new THREE.CylinderGeometry(0.42, 0.46, 6, 12), "#fafaf9"); col.position.set(-5 + k * 2, 3.85, 3.2); g.add(col); }
+    scene.add(g);
+    const el = document.createElement("button"); el.className = "court-lbl"; el.textContent = c.title;
+    el.onclick = () => {
+      exitWalk(); fly([0, 12.5, 16.5], [0, 4.5, -24]);
+      $("#cc").innerHTML = `<div class="ch"><div class="tile">🏛️</div><div><div class="eb">驗證機構</div><h2>${c.historyTitle}</h2></div></div><p class="lede">${c.historyDesc}</p>`;
+      $("#card").hidden = false;
+    };
+    lab.appendChild(el); courtEls.push({ el, x: c.x, y: c.y, z: c.z });
+  });
+  EGGS.forEach(e => {
+    const g = new THREE.Group(); g.position.set(e.x, 1.6, e.z);
+    const gem = M(new THREE.OctahedronGeometry(0.5), "#fbbf24", { em: "#f59e0b", emi: 0.8 }); gem.scale.y = 1.3;
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(1.3, 8, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+    hit.userData.eggId = e.id; pick.push(hit); g.add(gem, hit); scene.add(g); eggMeshes[e.id] = { g };
   });
 
   let speedMulti = 1.0;
@@ -497,6 +340,79 @@ function boot() {
   let isWalkMode = false, selZ = -1, selC = -1, selF = -1, names = true, allFlows = false, bird = false, currentSearchQuery = "";
   ctl.addEventListener("start", () => fl = null);
 
+  // 顯示專案大廳 (Project Lobby)
+  const showProjectLobby = () => {
+    let html = `<div id="projLobby" style="position:fixed;inset:0;background:var(--panel);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">
+      <div style="background:var(--card-bg);padding:40px;border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,0.2);width:500px;max-width:90vw;max-height:80vh;overflow-y:auto;border:1px solid var(--line);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 style="margin:0;font-size:22px;">選擇專案 (${currentUser.name})</h2>
+          ${isAdmin() ? '<button class="btn" style="padding:6px 12px;font-size:12px;" onclick="createNewProject()">＋ 新增</button>' : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">`;
+    
+    let projCount = 0;
+    for (const [pid, proj] of Object.entries(DB)) {
+      // 權限過濾：稽核員只能看指派給自己的；一般使用者只能看，不能改；管理員看全部
+      if (isAuditor() && proj.auditor !== currentUser.u) continue; 
+      
+      projCount++;
+      html += `<button class="row" style="background:#fff;" onclick="selectProject('${pid}')">
+        <div class="fn" style="text-align:left;">
+          <b style="font-size:15px;color:var(--ink);">${esc(proj.name)}</b>
+          <small>客戶：${esc(proj.client) || '未設定'} | 稽核員：${proj.auditor || '未指派'}</small>
+        </div>
+        ${isAdmin() ? `<span onclick="event.stopPropagation(); deleteProject('${pid}')" style="color:#ef4444;font-size:16px;">🗑️</span>` : ''}
+      </button>`;
+    }
+
+    if (projCount === 0) {
+      html += `<p class="mute">目前沒有可用的專案。</p>`;
+    }
+
+    html += `</div>
+      <button class="sim-btn" style="position:static;width:100%;justify-content:center;padding:12px;margin-top:20px;background:#ef4444" onclick="doLogout()">登出</button>
+      </div></div>`;
+    
+    const existing = document.getElementById("projLobby");
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', html);
+  };
+
+  window.selectProject = (pid) => {
+    document.getElementById("projLobby").remove();
+    loadProject(pid);
+    
+    // 進入專案後，稽核員與一般使用者鎖定為認真模式
+    if (canAudit() || isUser()) {
+      document.body.classList.add("serious-mode");
+      $("#modeBtn").style.display = "none";
+      sb.classList.add("open");
+    } else {
+      document.body.classList.remove("serious-mode");
+      $("#modeBtn").style.display = "inline-block";
+      $("#modeBtn").innerHTML = "📊 認真模式";
+    }
+  };
+
+  window.createNewProject = () => {
+    if (!isAdmin()) return;
+    const name = prompt("請輸入新專案名稱：");
+    if (!name) return;
+    const pid = "proj_" + Date.now();
+    DB[pid] = { name: name, client: "", start: "", auditor: "", st: {}, na: {}, why: {}, own: {}, nc: {} };
+    saveDB();
+    showProjectLobby();
+  };
+
+  window.deleteProject = (pid) => {
+    if (!isAdmin()) return;
+    if (confirm("確定要刪除此專案嗎？此操作無法復原。")) {
+      delete DB[pid];
+      saveDB();
+      showProjectLobby();
+    }
+  };
+
   window.doLogin = () => {
     const u = $("#loginUser").value.trim(), p = $("#loginPwd").value;
     const match = USERS.find(x => x.u === u && x.p === p);
@@ -504,19 +420,7 @@ function boot() {
       currentUser = match;
       $("#loginOverlay").style.display = "none";
       $("#loginErr").style.display = "none";
-      
-      // 根據權限強制設定認真模式
-      if (canAudit()) {
-        document.body.classList.add("serious-mode");
-        $("#modeBtn").style.display = "none"; // 隱藏切換按鈕，鎖死在認真模式
-        sb.classList.add("open");
-      } else {
-        document.body.classList.remove("serious-mode");
-        $("#modeBtn").style.display = "inline-block"; // 顯示按鈕給一般使用者
-        $("#modeBtn").innerHTML = "📊 認真模式";
-      }
-      
-      refresh();
+      showProjectLobby(); 
     } else {
       $("#loginErr").style.display = "block";
     }
@@ -529,19 +433,22 @@ function boot() {
     $("#loginPwd").value = "";
     $("#card").hidden = true;
     
-    // 恢復所有預設顯示狀態
+    const lobby = document.getElementById("projLobby");
+    if (lobby) lobby.remove();
+
     document.body.classList.remove("serious-mode");
     $("#modeBtn").style.display = "inline-block";
     $("#modeBtn").innerHTML = "📊 認真模式";
     sb.classList.remove("open");
   };
 
-  window.setNC = (no, v) => { if (!canAudit()) return; P.nc[no] = +v; saveP(); refresh(); };
-  window.pgSet = (k, v) => { if (!canEdit()) return; P[k] = v; saveP(); refresh(); };
-  window.pgOwn = (i, v) => { if (!canEdit()) return; P.own[i] = v; saveP(); refresh(); };
-  window.setSt = (no, v) => { if (!canEdit()) return; P.st[no] = +v; saveP(); refresh(); };
-  window.setNA = (no, c) => { if (!canEdit()) return; if (c) P.na[no] = true; else delete P.na[no]; saveP(); refresh(); };
-  window.setWhy = (no, v) => { if (!canEdit()) return; P.why[no] = v; saveP(); };
+  window.setNC = (no, v) => { if (!canAudit()) return; P.nc[no] = +v; saveDB(); refresh(); };
+  window.pgSet = (k, v) => { if (!canEdit()) return; P[k] = v; saveDB(); refresh(); };
+  window.pgOwn = (i, v) => { if (!canEdit()) return; P.own[i] = v; saveDB(); refresh(); };
+  window.setSt = (no, v) => { if (!canEdit()) return; P.st[no] = +v; saveDB(); refresh(); };
+  window.setNA = (no, c) => { if (!canEdit()) return; if (c) P.na[no] = true; else delete P.na[no]; saveDB(); refresh(); };
+  window.setWhy = (no, v) => { if (!canEdit()) return; P.why[no] = v; saveDB(); };
+  window.assignAuditor = (auditorId) => { if (!canEdit()) return; P.auditor = auditorId; saveDB(); refresh(); };
 
   N.forEach(n => {
     const e = document.createElement("button"); e.className = "pin"; 
@@ -549,14 +456,23 @@ function boot() {
       const h = houses[n.id]; selZ = n.z; selC = n.id;
       if(!seen[n.id]) { seen[n.id] = 1; }
       fly([h.x - 4.5, 5.5, h.z + 6.8], [h.x, 1.0, h.z]);
+      
+      const disableEdit = !canEdit() ? "disabled" : "";
+      const disableAudit = !canAudit() ? "disabled" : "";
+
       $("#cc").innerHTML = `<button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
         <div class="ch"><div class="tile">${Zs[n.z].e}</div><div><div class="eb">${n.cl ? n.th + "・條款 " + n.no.slice(1) : n.th + "控制・" + n.no}${n.nw ? "・★ 2022 新增" : ""}</div><h2>${n.ti}</h2></div></div>
         <p class="lede" style="color:var(--mute); margin-top:0">${n.en}</p>
         <div class="blk"><h4>${n.nw ? "稽核常見證據" : n.cl ? "必備文件／紀錄（條款要求）" : "建議文件／紀錄"}</h4><p>${n.ev}</p></div>
         <div class="blk"><h4>SoA 與實作狀態</h4><div class="zp" style="display:block">
-          <select ${canEdit() ? "" : "disabled"} onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-          <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${canEdit() ? "" : "disabled"} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
-          <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" ${canEdit() ? "" : "disabled"} onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;${n.cl ? "display:none" : ""}">
+          <select ${disableEdit} onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+          <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${disableEdit} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
+          <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" ${disableEdit} onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;${n.cl ? "display:none" : ""}">
+        </div></div>
+        <div class="blk"><h4>稽核狀態</h4><div class="zp">
+          <select ${disableAudit} onchange="setNC('${n.no}', this.value)" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : 'var(--line)'}; color:${ncOf(n.no) > 1 ? '#ef4444' : 'inherit'}">
+            ${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"].map((t, k) => `<option value="${k}" ${ncOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
         </div></div>
         <div class="blk"><h4>模板與佐證文件</h4><div id="tplBox"></div></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;"><button class="btn" id="shareBtn" style="background:#3b82f6;">📸 儲存圖卡</button></div>`;
@@ -568,13 +484,9 @@ function boot() {
         if(shareBtn) {
           shareBtn.onclick = async () => {
             shareBtn.innerHTML = "處理中..."; 
-            if (!document.body.classList.contains("serious-mode")) {
-              ren.render(scene, cam); 
-            }
+            if (!document.body.classList.contains("serious-mode")) { ren.render(scene, cam); }
             try {
-              const canvas = await html2canvas(document.body, {
-                useCORS: true, ignoreElements: (el) => { return el.id === 'sb' || el.id === 'cx' || el.classList.contains('tools') || el.classList.contains('hud') || el.classList.contains('tracker') || (el.tagName === 'BUTTON' && el.classList.contains('btn')); }
-              });
+              const canvas = await html2canvas(document.body, { useCORS: true, ignoreElements: (el) => { return el.id === 'sb' || el.id === 'cx' || el.classList.contains('tools') || el.classList.contains('hud') || el.classList.contains('tracker') || (el.tagName === 'BUTTON' && el.classList.contains('btn')); } });
               const link = document.createElement("a"); link.download = `ISO27001_案例_${n.ti}.png`; link.href = canvas.toDataURL("image/png"); link.click();
             } catch(e) { console.error("截圖發生錯誤", e); } finally { shareBtn.innerHTML = "📸 儲存圖卡"; }
           };
@@ -621,7 +533,6 @@ function boot() {
       let isMatch = false; if (qLower && [n.no, n.ti, n.en, n.ev, Zs[n.z].n].join("").toLowerCase().includes(qLower)) isMatch = true;
       e.className = "pin" + (isNA(n.no) ? " na" : stOf(n.no) === 2 ? " done" : seen[id] ? " read" : "") + (id === selC ? " on" : "") + (isMatch ? " match" : ""); e.innerHTML = `<b>${stOf(n.no) === 2 ? "✓" : n.j + 1}</b>${dn(n.no)} ${n.ti}${tplN(n.no) ? " 📎" : ""}`;
     });
-    F.forEach(f => f.w.forEach(q => { q.tg.style.display = allFlows && !isWalkMode && (selF < 0 || F[selF] === f) ? "" : "none"; }));
     courtEls.forEach(c => { c.el.style.display = names && !isWalkMode ? "" : "none"; });
   }
 
@@ -643,11 +554,11 @@ function boot() {
 
   sb.innerHTML = `
     <button class="sbx" onclick="document.getElementById('sb').classList.remove('open')">✕</button>
-    <div class="eb">ISO 27001 INDEX</div><h2>落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.filter(n => !n.cl).length} 項控制措施（附錄 A）＋ ${N.filter(n => n.cl).length} 項核心條款</p>
+    <div class="eb">ISO 27001 INDEX</div><h2 id="sbProjName">落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.filter(n => !n.cl).length} 項控制措施（附錄 A）＋ ${N.filter(n => n.cl).length} 項核心條款</p>
     <div class="tabs"><button data-tab="pg" class="on">輔導進度</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
     <div id="tabPg"></div>
     <div id="tabTp" hidden></div>
-    <div id="tabIdx" hidden><input id="q" class="search" type="search" placeholder="搜尋條次、措施名稱、證據關鍵字…"><div id="bd"></div></div><p class="note">此為 ISO 27001 教育訓練原型，請依組織實際情況調整政策。</p>
+    <div id="tabIdx" hidden><input id="q" class="search" type="search" placeholder="搜尋條次、措施名稱、證據關鍵字…"><div id="bd"></div></div>
   `;
   fill(""); $("#q").oninput = e => fill(e.target.value);
 
@@ -655,7 +566,6 @@ function boot() {
   $("#home").onclick = () => { $("#card").hidden = true; selZ = -1; selC = -1; selF = -1; F.forEach(f => f.tube.visible = allFlows); exitWalk(); fly([-15, 34, 44], [5, 1.0, -2]); sync(); };
   $("#courtBtn").onclick = () => { $("#card").hidden = true; exitWalk(); fly([0, 12.5, 16.5], [0, 4.5, -24]); sync(); };
   $("#cx").onclick = () => { $("#card").hidden = true; };
-  $("#nextTurnBtn").onclick = runNextTurn;
   $("#tm").onclick = e => { const b = e.target.closest("button"); if (b) window.tod(b.dataset.t); };
   $("#tg").onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
@@ -701,11 +611,9 @@ function boot() {
   });
 
   const size = () => { 
-    if (document.body.classList.contains("serious-mode")) return; // 如果在認真模式，不要觸發 three.js resize
+    if (document.body.classList.contains("serious-mode")) return; 
     const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
-    ren.setSize(w, h); 
-    cam.aspect = w / h; 
-    cam.updateProjectionMatrix(); 
+    ren.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); 
   };
   new ResizeObserver(size).observe(stage); size();
   const v3 = V(0, 0, 0);
@@ -713,7 +621,7 @@ function boot() {
 
   function loop(ts) {
     requestAnimationFrame(loop);
-    if (document.body.classList.contains("serious-mode")) return; // 認真模式時暫停 3D 渲染，節省效能
+    if (document.body.classList.contains("serious-mode")) return; 
     
     const dt = Math.min(0.08, (ts - last) / 1000) * speedMulti; last = ts; mt += dt;
 
@@ -732,16 +640,9 @@ function boot() {
       b.g.rotation.y = -b.angle; b.g.position.y = Math.sin(mt * 2 + b.bob) * 0.1 - 0.1;
     });
 
-    F.forEach(f => f.w.forEach(w => {
-      const u = (mt * 0.055 + w.ph) % 1, v = u < 0.5 ? u * 2 : 2 - u * 2, p = f.curve.getPointAt(v);
-      w.g.position.set(p.x, 0.36 + Math.abs(Math.sin(mt * 8 + w.ph * 9)) * 0.05, p.z);
-      w.tg.style.display = allFlows && !isWalkMode && (selF < 0 || F[selF] === f) ? "" : "none";
-    }));
-
     const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
     ils.forEach((e, i) => { if (e.style.display !== "none") place(e, Zs[i].x - Zs[i].r * 0.5, 2.3, Zs[i].z - Zs[i].r * 0.5, w, h); });
     pins.forEach((e, id) => { if (e.style.display !== "none") place(e, houses[id].x, 2.0, houses[id].z, w, h); });
-    F.forEach(f => f.w.forEach(q => { if (q.tg.style.display !== "none") place(q.tg, q.g.position.x, 1.7, q.g.position.z, w, h); }));
     courtEls.forEach(c => { if (c.el.style.display !== "none") place(c.el, c.x, c.y, c.z, w, h); });
     ren.render(scene, cam);
   }
@@ -756,9 +657,23 @@ function boot() {
     const hasNC = N.filter(n => ncOf(n.no) > 0).sort((a, b) => ncOf(b.no) - ncOf(a.no));
     const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
     
+    const auditorSelect = isAdmin() ? `
+      <div style="margin-top:10px;">
+        <label style="font-size:12px;font-weight:700;">指派稽核員：</label>
+        <select class="search" style="width:auto;padding:4px 8px;margin-bottom:0;" onchange="assignAuditor(this.value)">
+          <option value="">無</option>
+          ${USERS.filter(u=>u.r==="auditor").map(u => `<option value="${u.u}" ${P.auditor===u.u?'selected':''}>${u.name} (${u.u})</option>`).join("")}
+        </select>
+      </div>` 
+      : (isAuditor() && P.auditor === currentUser.u ? `<p style="color:#f59e0b;font-weight:700;font-size:12px;">✅ 您是本專案的指派稽核員</p>` : '');
+
     $("#tabPg").innerHTML = `
+      <div style="margin-bottom:12px;">
+        <button class="btn" style="background:#4b5563;font-size:12px;padding:6px 12px;" onclick="showProjectLobby()">🔙 回專案列表</button>
+      </div>
       <input class="search" placeholder="客戶 / 專案名稱" ${dis} value="${esc(P.client)}" onchange="pgSet('client', this.value)">
       <label class="pgl">專案起始月 <input type="month" class="search" ${dis} style="width:auto; margin:0 0 0 8px;" value="${esc(P.start)}" onchange="pgSet('start', this.value)"></label>
+      ${auditorSelect}
       <div class="pgbox"><div class="pgbig">${tot}<small>/ ${all} 項已完成</small><span>${pct}%</span></div><div class="pgbar"><i style="width:${pct}%; background:#10b981"></i></div>
         <p class="mute" style="margin:8px 0 0">${m ? `目前第 ${m} 個月，依計畫應完成 ${exp} 項。` : ""}${sts}${nNA ? `（另有 ${nNA} 項不適用）` : ""}</p></div>
       <h3>接下來該做</h3>
@@ -768,12 +683,8 @@ function boot() {
       <div class="rows">${Zs.map((z, i) => { const s = zState(i), d = zDone(i), t = zTot(i); return `<button class="row" onclick="openZone(${i})"><span class="dot" style="background:${s.c}"></span><span class="rt">${z.n}<small>${s.t}・期限第 ${ZDUE[i]} 月${P.own[i] ? "・" + esc(P.own[i]) : ""}</small><div class="pgbar"><i style="width:${t ? d * 100 / t : 0}%; background:${s.c}"></i></div></span><em style="color:${s.c}">${d}/${t}</em></button>`; }).join("")}</div>
       <div class="pgact" style="flex-wrap:wrap">
         <button class="btn" onclick="pgSoA()">匯出 SoA (CSV)</button>
-        <button class="btn" style="background:#3b82f6" onclick="pgExp()">匯出進度</button>
-        <button class="btn" style="background:#3b82f6" ${dis} onclick="pgImp()">匯入</button>
-        <button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>
-        <button class="btn" style="background:#ef4444" onclick="doLogout()">登出 (${currentUser ? currentUser.name : ''})</button>
-      </div>
-      <p class="note">目前是網站單機模式：進度與缺失只存在您的個人瀏覽器中，離開或更換電腦前請務必點擊「匯出進度」保存檔案。</p>`;
+        ${isAdmin() ? '<button class="btn" style="background:#9ca3af" onclick="pgReset()">重置進度</button>' : ''}
+      </div>`;
   }
   function renderTp() {
     const cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
@@ -788,22 +699,6 @@ function boot() {
   window.renderTplBox = no => {
     const bx = $("#tplBox"); if (!bx) return;
     const mine = TL.filter(f => f.ctl.includes(no));
-    
-    // 缺失追蹤下拉選單 (放置在卡片中的 zp 區塊內)
-    const ncSelectHTML = `
-      <select ${canAudit() ? "" : "disabled"} onchange="setNC('${no}', this.value)" style="margin-left:8px; border-color:${ncOf(no) > 1 ? '#ef4444' : 'var(--line)'}; color:${ncOf(no) > 1 ? '#ef4444' : 'inherit'}">
-        ${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"].map((t, k) => `<option value="${k}" ${ncOf(no) === k ? "selected" : ""}>${t}</option>`).join("")}
-      </select>
-    `;
-    
-    const zpBox = document.querySelector("#cc .zp");
-    if (zpBox && !zpBox.querySelector("select[onchange^='setNC']")) {
-       const selectNode = document.createElement("div");
-       selectNode.style.display = "inline-block";
-       selectNode.innerHTML = ncSelectHTML;
-       zpBox.insertBefore(selectNode.firstElementChild, zpBox.querySelector("label"));
-    }
-
     bx.innerHTML = (mine.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button></div>`).join("") || "<p class='mute' style='margin:0 0 8px'>尚未對應模板。</p>");
   };
   
@@ -811,14 +706,15 @@ function boot() {
   window.openCtl = no => pins[N.find(n => n.no === no).id].onclick();
   
   function refresh() {
+    if(P) {
+      $("#sbProjName").innerText = P.name || "未命名專案";
+    }
     zBeacons.forEach((bc, i) => { const c = zState(i).c; bc.material.color.set(c); bc.material.emissive.set(c); });
     sync(); renderPg();
     const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
   }
   
-  window.pgExp = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 1)], { type: "application/json" })); a.download = "progress.json"; a.click(); };
-  window.pgImp = () => { const f = document.createElement("input"); f.type = "file"; f.accept = ".json"; f.onchange = () => f.files[0].text().then(t => { Object.assign(P, JSON.parse(t)); saveP(); refresh(); }); f.click(); };
-  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; saveP(); refresh(); } };
+  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; saveDB(); refresh(); } };
   window.pgSoA = () => {
     const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"], NC_ST = ["無缺失", "OFI", "Minor NC", "Major NC"];
     const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "稽核缺失", "負責人", "模板檔案", "建議文件／紀錄"]];
@@ -830,7 +726,6 @@ function boot() {
   
   async function init() {
     try { const ur = await fetch("users.json", { cache: "no-store" }); if (ur.ok) { const j = await ur.json(); if(Array.isArray(j)) USERS = j; } } catch (e) {}
-    try { const r = await fetch("progress.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && j.ts > P.ts) Object.assign(P, j); } } catch (e) {}
     await loadTpl();
   }
   
