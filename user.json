@@ -1,0 +1,26 @@
+[
+  {
+    "u": "admin",
+    "p": "admin123",
+    "r": "admin",
+    "name": "系統管理員"
+  },
+  {
+    "u": "audit",
+    "p": "audit123",
+    "r": "auditor",
+    "name": "外部稽核員"
+  },
+  {
+    "u": "user",
+    "p": "user123",
+    "r": "user",
+    "name": "一般員工"
+  },
+  {
+    "u": "boss",
+    "p": "888888",
+    "r": "user",
+    "name": "總經理"
+  }
+]
