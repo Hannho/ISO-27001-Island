@@ -200,11 +200,23 @@ button:focus-visible, input:focus-visible { outline: 2px solid #3b82f6; outline-
 
 /* ---- 認真模式 (Dashboard Mode) ---- */
 body.serious-mode .app { display: block; }
-body.serious-mode #stage { display: none; }
-body.serious-mode #sb { height: 100vh; max-width: 100%; border-left: none; padding: 40px; transform: none; box-shadow: none; border-radius: 0; }
+body.serious-mode #stage canvas, 
+body.serious-mode #lab, 
+body.serious-mode .hud, 
+body.serious-mode .tracker, 
+body.serious-mode .sim-btn { display: none !important; }
+
+body.serious-mode #sb { height: 100vh; max-width: 100%; border-left: none; padding: 70px 40px 40px; transform: none; box-shadow: none; border-radius: 0; }
 body.serious-mode #sb h2 { font-size: 32px; }
 body.serious-mode .tabs button { font-size: 16px; padding: 12px; }
 body.serious-mode .rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 12px; }
+
+body.serious-mode #card {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 500px; max-width: 90vw; height: 80vh; bottom: auto; z-index: 999;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+body.serious-mode .tools, body.serious-mode .brand { z-index: 999; }
 </style>
 </head>
 <body>
@@ -448,6 +460,7 @@ const F = [
 
 const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
 
+
 // ==========================================
 // 帳號權限管理系統 (Login System)
 // ==========================================
@@ -462,54 +475,25 @@ const isAdmin = () => currentUser && currentUser.r === "admin";
 const isAuditor = () => currentUser && currentUser.r === "auditor";
 const canEdit = () => isAdmin();
 const canAudit = () => isAdmin() || isAuditor();
-const canUp = () => isAdmin();
-
-window.doLogin = () => {
-  const u = $("#loginUser").value.trim(), p = $("#loginPwd").value;
-  const match = USERS.find(x => x.u === u && x.p === p);
-  if (match) {
-    currentUser = match;
-    $("#loginOverlay").style.display = "none";
-    $("#loginErr").style.display = "none";
-    refresh();
-  } else {
-    $("#loginErr").style.display = "block";
-  }
-};
-
-window.doLogout = () => {
-  currentUser = null;
-  $("#loginOverlay").style.display = "flex";
-  $("#loginUser").value = "";
-  $("#loginPwd").value = "";
-  $("#card").hidden = true;
-  if (document.body.classList.contains("serious-mode")) {
-    document.body.classList.remove("serious-mode");
-    $("#modeBtn").innerHTML = "📊 認真模式";
-    sb.classList.remove("open");
-    // 不再觸發 size() 以避免 three.js 報錯
-  }
-};
+const canUp = () => false; // 完全關閉網頁端上傳，統一由 Github 操作
 
 // ==========================================
-// 資安合規模擬器核心系統 (ISO 27001 Simulator)
+// 資料庫與進度設定
 // ==========================================
-const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; // 各島建議完成月份（依島序 01–12，可依專案調整）
+const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; 
 const PKEY = "iso27001_island_progress";
 const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, nc: {}, ts: 0 };
-const TS = { mode: "static", auth: false, key: "", db: null, pend: [], edit: null }; // 預設改為 static，移除 srv 相關邏輯
 let TL = [];
 
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
 const saveP = () => {
   P.ts = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {}
 };
+
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isNA = no => !!P.na[no];
 const stOf = no => P.st[no] || 0;
-const ncOf = no => P.nc[no] || 0; // 0:無, 1:OFI, 2:Minor, 3:Major
-
-window.setNC = (no, v) => { if (!canAudit()) return; P.nc[no] = +v; saveP(); refresh(); };
+const ncOf = no => P.nc[no] || 0; 
 const zCtl = i => N.filter(n => n.z === i && !isNA(n.no));
 const zTot = i => zCtl(i).length;
 const zDone = i => zCtl(i).filter(n => stOf(n.no) === 2).length;
@@ -541,9 +525,6 @@ const TPL = {
       return [];
     }
   },
-  add: async () => alert("目前為 GitHub Pages 唯讀模式，無法上傳新檔案。"),
-  link: async () => alert("目前為 GitHub Pages 唯讀模式，無法修改控制措施對應。"),
-  del: async () => alert("目前為 GitHub Pages 唯讀模式，無法刪除檔案。"),
   get: async id => {
     const m = TL.find(f => f.id === id);
     if (!m) return;
@@ -588,7 +569,6 @@ const LIFE_EVENTS = [
 let eventIndex = 0;
 function updateTracker() {
   $("#monthLabel").innerText = `模擬演練：第 ${player.month} 個月`;
-  // 分數限制在 0-100
   player.score = Math.max(0, Math.min(100, player.score));
   $("#scoreLabel").innerText = `分數: ${player.score}`;
   $("#tr-fill").style.width = `${(player.month / 12) * 100}%`;
@@ -609,6 +589,7 @@ function runNextTurn() {
   $("#cc").innerHTML = `<div class="ch"><div class="tile">${ev.icon}</div><div><div class="eb">MONTH ${player.month} · 突發演練</div><h2>${ev.title}</h2></div></div><p class="lede">${ev.desc}</p><div style="margin-top:16px;">${optHTML}</div>`;
   $("#card").hidden = false;
 }
+
 window.resolveEvent = function(eIdx, optIdx) {
   const resultText = LIFE_EVENTS[eIdx].options[optIdx].effect();
   updateTracker();
@@ -658,8 +639,6 @@ function boot() {
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(12, 1); t.encoding = THREE.sRGBEncoding; return t;
   }
 
-  const shirtColors = ["#e76f51", "#2a9d8f", "#e9c46a", "#3b82f6", "#f4a261", "#ffffff", "#8ecae6", "#ef476f"];
-  const hairColors = ["#1e242b", "#4a2c11", "#7f4f24", "#2b2d42"];
   const animatedPeople = []; const courtLitMats = [];
 
   function makePerson(shirtIdx = 0) { const g = new THREE.Group(); const legs = M(new THREE.CylinderGeometry(0.11, 0.1, 0.34, 7), "#2b2d42"); legs.position.y = 0.17; const torso = M(new THREE.CylinderGeometry(0.16, 0.14, 0.4, 8), ["#e76f51", "#2a9d8f", "#e9c46a", "#3b82f6", "#f4a261", "#ffffff", "#8ecae6", "#ef476f"][shirtIdx % 8]); torso.position.y = 0.52; const head = M(new THREE.SphereGeometry(0.16, 10, 8), "#f9dcc4"); head.position.y = 0.85; const hair = M(new THREE.SphereGeometry(0.17, 9, 7, 0, Math.PI * 2, 0, Math.PI * 0.58), ["#1e242b", "#4a2c11", "#7f4f24", "#2b2d42"][shirtIdx % 4]); hair.position.y = 0.87; hair.rotation.x = -0.15; g.add(legs, torso, head, hair); return g; }
@@ -806,6 +785,39 @@ function boot() {
   let isWalkMode = false, selZ = -1, selC = -1, selF = -1, names = true, allFlows = false, bird = false, currentSearchQuery = "";
   ctl.addEventListener("start", () => fl = null);
 
+  window.doLogin = () => {
+    const u = $("#loginUser").value.trim(), p = $("#loginPwd").value;
+    const match = USERS.find(x => x.u === u && x.p === p);
+    if (match) {
+      currentUser = match;
+      $("#loginOverlay").style.display = "none";
+      $("#loginErr").style.display = "none";
+      refresh();
+    } else {
+      $("#loginErr").style.display = "block";
+    }
+  };
+
+  window.doLogout = () => {
+    currentUser = null;
+    $("#loginOverlay").style.display = "flex";
+    $("#loginUser").value = "";
+    $("#loginPwd").value = "";
+    $("#card").hidden = true;
+    if (document.body.classList.contains("serious-mode")) {
+      document.body.classList.remove("serious-mode");
+      $("#modeBtn").innerHTML = "📊 認真模式";
+      sb.classList.remove("open");
+    }
+  };
+
+  window.setNC = (no, v) => { if (!canAudit()) return; P.nc[no] = +v; saveP(); refresh(); };
+  window.pgSet = (k, v) => { if (!canEdit()) return; P[k] = v; saveP(); refresh(); };
+  window.pgOwn = (i, v) => { if (!canEdit()) return; P.own[i] = v; saveP(); refresh(); };
+  window.setSt = (no, v) => { if (!canEdit()) return; P.st[no] = +v; saveP(); refresh(); };
+  window.setNA = (no, c) => { if (!canEdit()) return; if (c) P.na[no] = true; else delete P.na[no]; saveP(); refresh(); };
+  window.setWhy = (no, v) => { if (!canEdit()) return; P.why[no] = v; saveP(); };
+
   N.forEach(n => {
     const e = document.createElement("button"); e.className = "pin"; 
     e.onclick = () => {
@@ -941,7 +953,6 @@ function boot() {
       sb.classList.add("open"); 
     } else {
       sb.classList.remove("open");
-      size(); // 只有在切換回 3D 模式時才重新計算畫面，避免報錯
     }
   };
 
@@ -966,7 +977,10 @@ function boot() {
 
   const size = () => { 
     if (document.body.classList.contains("serious-mode")) return; // 如果在認真模式，不要觸發 three.js resize
-    ren.setSize(stage.clientWidth, stage.clientHeight); cam.aspect = stage.clientWidth / stage.clientHeight; cam.updateProjectionMatrix(); 
+    const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
+    ren.setSize(w, h); 
+    cam.aspect = w / h; 
+    cam.updateProjectionMatrix(); 
   };
   new ResizeObserver(size).observe(stage); size();
   const v3 = V(0, 0, 0);
@@ -999,7 +1013,7 @@ function boot() {
       w.tg.style.display = allFlows && !isWalkMode && (selF < 0 || F[selF] === f) ? "" : "none";
     }));
 
-    const w = stage.clientWidth, h = stage.clientHeight;
+    const w = stage.clientWidth || 1, h = stage.clientHeight || 1;
     ils.forEach((e, i) => { if (e.style.display !== "none") place(e, Zs[i].x - Zs[i].r * 0.5, 2.3, Zs[i].z - Zs[i].r * 0.5, w, h); });
     pins.forEach((e, id) => { if (e.style.display !== "none") place(e, houses[id].x, 2.0, houses[id].z, w, h); });
     F.forEach(f => f.w.forEach(q => { if (q.tg.style.display !== "none") place(q.tg, q.g.position.x, 1.7, q.g.position.z, w, h); }));
@@ -1015,7 +1029,7 @@ function boot() {
     
     // 找出有缺失的項目
     const hasNC = N.filter(n => ncOf(n.no) > 0).sort((a, b) => ncOf(b.no) - ncOf(a.no));
-    const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="document.body.classList.remove('serious-mode'); $('#modeBtn').innerText='📊 認真模式'; size(); pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
+    const ncHTML = hasNC.length ? `<h3>⚠️ 缺失追蹤 (Findings)</h3><div class="rows" style="margin-bottom:16px;">${hasNC.map(n => `<button class="row" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; background:#fff" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${["", "OFI", "Minor NC", "Major NC"][ncOf(n.no)]}</small></span></button>`).join("")}</div>` : "";
     
     $("#tabPg").innerHTML = `
       <input class="search" placeholder="客戶 / 專案名稱" ${dis} value="${esc(P.client)}" onchange="pgSet('client', this.value)">
@@ -1034,25 +1048,21 @@ function boot() {
         <button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>
         <button class="btn" style="background:#ef4444" onclick="doLogout()">登出 (${currentUser ? currentUser.name : ''})</button>
       </div>
-      <p class="note">目前是網站單機模式：模板來自 files.json；進度只存在您的個人瀏覽器中，更換電腦前請務必點擊「匯出進度」保存。附錄 A 之外，條款 4–10 也必須完成。</p>`;
+      <p class="note">目前是網站單機模式：進度與缺失只存在您的個人瀏覽器中，離開或更換電腦前請務必點擊「匯出進度」保存檔案。</p>`;
   }
   function renderTp() {
-    const ed = canUp(), cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
+    const cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
     $("#tabTp").innerHTML = `
       <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・來自 files.json（網站內建，唯讀）</p></div>
-      ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">模板來自網站的 files.json 與 Files 資料夾（唯讀）。新增模板請從原始碼層級（GitHub）加入。</p>`}
-      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpEdit('${f.id}')">對應</button><button class="mini" onclick="tpDel('${f.id}')">刪除</button>` : ""}</div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
-    const dz = $("#drop"); if (dz) { dz.ondragover = e => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = e => { e.preventDefault(); dz.classList.remove("on"); tpPick(e.dataTransfer.files); }; }
+      <p class="note">模板來自 GitHub 的 files.json 與 Files 資料夾（唯讀）。新增模板請從 GitHub 儲存庫新增檔案。</p>
+      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button></div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
   }
-  function showTpForm(sel) {
-    $("#tpForm").innerHTML = `<div class="zp" style="display:block"><b>${TS.edit ? "修改對應的控制措施" : "上傳：" + TS.pend.map(f => esc(f.name)).join("、")}</b><div style="margin:8px 0">${Zs.map((z, i) => `<details><summary style="padding:6px 4px">${z.e} ${z.n}</summary><div class="ck">${N.filter(n => n.z === i).map(n => `<label><input type="checkbox" value="${n.no}" ${sel.includes(n.no) ? "checked" : ""}> ${dn(n.no)} ${n.ti}</label>`).join("")}</div></details>`).join("")}</div><button class="btn" onclick="tpSave()">${TS.edit ? "儲存" : "上傳"}</button> <button class="btn" style="background:#9ca3af" onclick="document.getElementById('tpForm').innerHTML=''">取消</button></div>`;
-    $("#tpForm").scrollIntoView({ block: "nearest" });
-  }
+  
   async function loadTpl() { try { TL = await TPL.list(); } catch (e) { TL = []; } renderTp(); refresh(); }
-  const tryDo = async fn => { try { await fn(); } catch (e) { alert("操作失敗：" + (e && e.message || e) + "\n（若在沙盒或 file:// 環境，瀏覽器可能不允許儲存檔案）"); } };
+  
   window.renderTplBox = no => {
     const bx = $("#tplBox"); if (!bx) return;
-    const mine = TL.filter(f => f.ctl.includes(no)), other = TL.filter(f => !f.ctl.includes(no)), ed = canUp();
+    const mine = TL.filter(f => f.ctl.includes(no));
     
     // 缺失追蹤下拉選單 (放置在卡片中的 zp 區塊內)
     const ncSelectHTML = `
@@ -1069,28 +1079,18 @@ function boot() {
        zpBox.insertBefore(selectNode.firstElementChild, zpBox.querySelector("label"));
     }
 
-    bx.innerHTML = (mine.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpUnlink('${f.id}', '${no}')">移除</button>` : ""}</div>`).join("") || "<p class='mute' style='margin:0 0 8px'>尚未放入模板。</p>")
-      + (ed ? `<label class="btn" style="background:#3b82f6; display:inline-block; cursor:pointer;">＋ 上傳模板<input type="file" multiple hidden onchange="tpUp(this.files, '${no}')"></label>${other.length ? `<select onchange="tpLinkOne(this.value, '${no}')" style="margin-left:6px; max-width:150px;"><option value="">連結既有…</option>${other.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join("")}</select>` : ""}` : "");
+    bx.innerHTML = (mine.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button></div>`).join("") || "<p class='mute' style='margin:0 0 8px'>尚未對應模板。</p>");
   };
-  window.tpPick = fs => { TS.pend = [...fs]; TS.edit = null; if (TS.pend.length) showTpForm([]); };
-  window.tpEdit = id => { TS.edit = id; TS.pend = []; showTpForm(TL.find(f => f.id === id).ctl); };
-  window.tpSave = () => tryDo(async () => { const ctl = [...document.querySelectorAll("#tpForm input:checked")].map(i => i.value); if (TS.edit) await TPL.link(TS.edit, ctl); else for (const f of TS.pend) await TPL.add(f, ctl); TS.pend = []; TS.edit = null; await loadTpl(); });
-  window.tpDel = id => { if (confirm("確定刪除這份模板？")) tryDo(async () => { await TPL.del(id); await loadTpl(); }); };
-  window.tpGet = id => tryDo(() => TPL.get(id));
-  window.tpUp = (fs, no) => tryDo(async () => { for (const f of fs) await TPL.add(f, [no]); await loadTpl(); renderTplBox(no); });
-  window.tpUnlink = (id, no) => tryDo(async () => { await TPL.link(id, TL.find(f => f.id === id).ctl.filter(c => c !== no)); await loadTpl(); renderTplBox(no); });
-  window.tpLinkOne = (id, no) => { if (id) tryDo(async () => { await TPL.link(id, [...TL.find(f => f.id === id).ctl, no]); await loadTpl(); renderTplBox(no); }); };
+  
+  window.tpGet = id => TPL.get(id).catch(e => alert("下載失敗：" + (e.message || "檔案可能遺失或未上傳至 GitHub")));
   window.openCtl = no => pins[N.find(n => n.no === no).id].onclick();
+  
   function refresh() {
     zBeacons.forEach((bc, i) => { const c = zState(i).c; bc.material.color.set(c); bc.material.emissive.set(c); });
     sync(); renderPg();
     const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
   }
-  window.pgSet = (k, v) => { if (!canEdit()) return; P[k] = v; saveP(); refresh(); };
-  window.pgOwn = (i, v) => { if (!canEdit()) return; P.own[i] = v; saveP(); refresh(); };
-  window.setSt = (no, v) => { if (!canEdit()) return; P.st[no] = +v; saveP(); refresh(); };
-  window.setNA = (no, c) => { if (!canEdit()) return; if (c) P.na[no] = true; else delete P.na[no]; saveP(); refresh(); };
-  window.setWhy = (no, v) => { if (!canEdit()) return; P.why[no] = v; saveP(); };
+  
   window.pgExp = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(P, null, 1)], { type: "application/json" })); a.download = "progress.json"; a.click(); };
   window.pgImp = () => { const f = document.createElement("input"); f.type = "file"; f.accept = ".json"; f.onchange = () => f.files[0].text().then(t => { Object.assign(P, JSON.parse(t)); saveP(); refresh(); }); f.click(); };
   window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; saveP(); refresh(); } };
@@ -1104,17 +1104,13 @@ function boot() {
   sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); };
   
   async function init() {
-    // 讀取外部 users.json (若存在則覆蓋內建假資料)
     try { const ur = await fetch("users.json", { cache: "no-store" }); if (ur.ok) { const j = await ur.json(); if(Array.isArray(j)) USERS = j; } } catch (e) {}
-    
-    // 強制設定為靜態網頁模式
-    TS.mode = "static";
-    
     try { const r = await fetch("progress.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && j.ts > P.ts) Object.assign(P, j); } } catch (e) {}
     await loadTpl();
   }
+  
   renderTp();
-  init(); // 先載入資料但不執行 refresh (登入後才會顯示)
+  init(); 
   requestAnimationFrame(loop);
 }
 </script>
