@@ -1,107 +1,155 @@
 [
   {
-    "id": "file_sa1",
-    "name": "SA 1 - Statement of Applicability.xlsx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_rt3",
-    "name": "RT 3 Risk Treatment Template - Empty.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_rt2",
-    "name": "RT 2 - Risk Log",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_rt1",
-    "name": "RT 1 - Risk Assessment & Treatment Methodology.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_r4",
-    "name": "R4 - Training & Competency Matrix.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_p1",
-    "name": "P1 - Information Security Policy.docx .docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_m8",
-    "name": "M8 - Nonconformity Process.docx .docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_m7",
-    "name": "M7 - Control of Documents within the ISMS.docx .docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_iso",
-    "name": "ISO 27001 Checklist.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_isg2",
-    "name": "ISG 2 - Information Security Group Meeting Minutes.docx .docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_ia2",
-    "name": "IA2 - Internal Audit Programme and Plan (Template).docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_g10",
-    "name": "G10 - Monthly Information Security Metrics Report Template.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_g8",
-    "name": "G8 - ISMS Roles & Responsibilities Document.docx",
-    "size": 15000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_g2",
-    "name": "G2 - ISMS Objectives.docx",
-    "size": 149000,
-    "ctl": [],
-    "ts": 1730357880000
-  },
-  {
-    "id": "file_g1",
+    "id": "f_5633eba6",
     "name": "G1 - Information Security Management System (ISMS) Scope Document.docx",
+    "path": "G1 - Information Security Management System (ISMS) Scope Document.docx",
     "size": 340000,
+    "ctl": [
+      "C4.3"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_638b1914",
+    "name": "G10 - Monthly Information Security Metrics Report Template.docx",
+    "path": "G10 - Monthly Information Security Metrics Report Template.docx",
+    "size": 15000,
+    "ctl": [
+      "C9.1"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_0afc2e25",
+    "name": "G2 - ISMS Objectives.docx",
+    "path": "G2 - ISMS Objectives.docx",
+    "size": 149000,
+    "ctl": [
+      "C6.2"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_25a7f04a",
+    "name": "G8 - ISMS Roles & Responsibilities Document.docx",
+    "path": "G8 - ISMS Roles & Responsibilities Document.docx",
+    "size": 15000,
+    "ctl": [
+      "C5.3",
+      "5.2"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_2ba9b572",
+    "name": "IA2 - Internal Audit Programme and Plan (Template).docx",
+    "path": "IA2 - Internal Audit Programme and Plan (Template).docx",
+    "size": 15000,
+    "ctl": [
+      "C9.2",
+      "5.35"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_a23042ba",
+    "name": "ISG 2 - Information Security Group Meeting Minutes.docx",
+    "path": "ISG 2 - Information Security Group Meeting Minutes.docx",
+    "size": 15000,
+    "ctl": [
+      "C9.3"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_0fc6379b",
+    "name": "ISO 27001 Checklist.docx",
+    "path": "ISO 27001 Checklist.docx",
+    "size": 15000,
     "ctl": [],
-    "ts": 1730357880000
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_061fb760",
+    "name": "M7 - Control of Documents within the ISMS.docx",
+    "path": "M7 - Control of Documents within the ISMS.docx",
+    "size": 15000,
+    "ctl": [
+      "C7.5"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_05d2ecd8",
+    "name": "M8 - Nonconformity Process.docx",
+    "path": "M8 - Nonconformity Process.docx",
+    "size": 15000,
+    "ctl": [
+      "C10.2"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_56875068",
+    "name": "P1 - Information Security Policy.docx",
+    "path": "P1 - Information Security Policy.docx",
+    "size": 15000,
+    "ctl": [
+      "C5.2",
+      "5.1",
+      "8.24"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_f1664827",
+    "name": "R4 - Training & Competency Matrix.docx",
+    "path": "R4 - Training & Competency Matrix.docx",
+    "size": 15000,
+    "ctl": [
+      "C7.2"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_439c8bdf",
+    "name": "RT 1 - Risk Assessment & Treatment Methodology.docx",
+    "path": "RT 1 - Risk Assessment & Treatment Methodology.docx",
+    "size": 15000,
+    "ctl": [
+      "C6.1.2"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_980a0332",
+    "name": "RT 2 - Risk Log.xlsx",
+    "path": "RT 2 - Risk Log.xlsx",
+    "size": 15000,
+    "ctl": [
+      "C6.1.2",
+      "C6.1.3"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_2e82a5db",
+    "name": "RT 3 Risk Treatment Template - Empty.docx",
+    "path": "RT 3 Risk Treatment Template - Empty.docx",
+    "size": 15000,
+    "ctl": [
+      "C6.1.3"
+    ],
+    "ts": 1793760428357
+  },
+  {
+    "id": "f_e082ffbe",
+    "name": "SA 1 - Statement of Applicability.xlsx",
+    "path": "SA 1 - Statement of Applicability.xlsx",
+    "size": 15000,
+    "ctl": [
+      "C6.1.3d"
+    ],
+    "ts": 1793760428357
   }
 ]

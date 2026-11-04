@@ -230,7 +230,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #3b82f6; outline-
       <div class="tr-top"><b id="monthLabel">模擬演練：第 1 個月</b><span id="scoreLabel">分數: 60</span></div>
       <div class="tr-bar"><div id="tr-fill" style="width: 8%;"></div></div>
       <div style="font-size:11px; color:#cbd5e1; margin-top:5px;" id="statusLabel">狀態：專案啟動 (Kick-off)</div>
-      <div style="font-size:12px; font-weight:700; color:#93c5fd; margin:12px 0 5px;" id="realLabel">輔導完成度：0/93 項控制措施（0%）</div>
+      <div style="font-size:12px; font-weight:700; color:#93c5fd; margin:12px 0 5px;" id="realLabel">輔導完成度：0/109 項（0%）</div>
       <div class="tr-bar"><div id="tr-fill2" style="background:#3b82f6; height:100%; width:0%; transition:width .4s;"></div></div>
     </div>
     <button class="sim-btn" id="nextTurnBtn"><i>⏳</i> 推進模擬 (Next Month)</button>
@@ -263,7 +263,8 @@ const Zs = [
   { n: "09 安全開發", p: "研發團隊", e: "🛠️", c: "#14b8a6", x: 15, z: 18, r: 4.6, edge: "mosaic", why: "8.25–8.29、8.31–8.33 涵蓋需求、架構、撰寫、測試、環境區隔、變更到測試資料的完整開發流程，由研發主責。委外開發 8.30 的對象是供應商，所以歸到供應商島。" },
   { n: "10 供應商與雲端", p: "採購・法務・IT", e: "🤝", c: "#eab308", x: 0, z: 22, r: 5.0, edge: "brick", why: "凡是把資料、系統或開發交給外部的情境：5.19–5.22 供應商、5.23 雲端服務、8.30 委外開發，都需要採購、法務與 IT 一起把關合約與監督。" },
   { n: "11 事件與營運持續", p: "應變小組・IT 主管", e: "🚨", c: "#6366f1", x: -10, z: 28, r: 4.9, edge: "stripe", why: "5.24–5.28 與 6.8 是事故的通報、評估、回應、學習與證據；5.29、5.30、8.13、8.14 是中斷後的持續與復原（備份、備援）。事件到復原是一條連續的線，由同一個應變小組演練。" },
-  { n: "12 法遵與資料保護", p: "法務・資安・DPO", e: "⚖️", c: "#84cc16", x: 9, z: 27, r: 4.6, edge: "mosaic", why: "5.31–5.34 是法規、智慧財產、紀錄與個資；8.10–8.12 與 8.24 是資料刪除、遮蔽、洩露預防與加密。共同點是「保護資料本身並滿足法規」，由法務、DPO 與資安共同負責。" }
+  { n: "12 法遵與資料保護", p: "法務・資安・DPO", e: "⚖️", c: "#84cc16", x: 9, z: 27, r: 4.6, edge: "mosaic", why: "5.31–5.34 是法規、智慧財產、紀錄與個資；8.10–8.12 與 8.24 是資料刪除、遮蔽、洩露預防與加密。共同點是「保護資料本身並滿足法規」，由法務、DPO 與資安共同負責。" },
+  { n: "13 ISMS 核心條款", p: "管理階層・資安室・顧問", e: "📋", c: "#64748b", x: -23, z: -4, r: 5.8, edge: "stripe", why: "ISO 27001 本文第 4–10 條不是附錄 A 的控制措施，卻是取得認證的必要條件：範圍、政策、風險評鑑、SoA、內部稽核、管理審查都要有文件與紀錄。這座島收的是『有必備文件的條款』。編號加上 C，避免和附錄 A 混淆（例如條款 5.2 是資訊安全政策，附錄 A 5.2 才是角色及責任）。" }
 ];
 
 const COURT_LANDMARKS = [
@@ -372,13 +373,29 @@ const CD = `5.1|資訊安全政策|Policies for information security|資訊安�
 8.31|開發、測試及運作環境之區隔|Separation of development, test and production environments|環境隔離架構圖、存取權限分離紀錄
 8.32|變更管理|Change management|變更申請與核准單、回復計畫
 8.33|測試資訊|Test information|測試資料選用與去識別化規則
-8.34|稽核測試期間資訊系統之保護|Protection of information systems during audit testing|稽核測試計畫與授權、唯讀存取紀錄`;
-const GRP = ["5.1 5.2 5.3 5.4 5.5 5.6 5.8 5.35 5.36 5.37 8.34", "6.1 6.2 6.3 6.4 6.5 6.6 6.7", "5.9 5.10 5.11 5.12 5.13 5.14", "7.7 7.8 7.9 7.10 7.13 7.14 8.1", "5.15 5.16 5.17 5.18 8.2 8.3 8.4 8.5", "7.1 7.2 7.3 7.4 7.5 7.6 7.11 7.12", "8.6 8.7 8.8 8.9 8.18 8.19", "8.20 8.21 8.22 8.23 8.15 8.16 8.17 5.7", "8.25 8.26 8.27 8.28 8.29 8.31 8.32 8.33", "5.19 5.20 5.21 5.22 5.23 8.30", "5.24 5.25 5.26 5.27 5.28 5.29 5.30 6.8 8.13 8.14", "5.31 5.32 5.33 5.34 8.10 8.11 8.12 8.24"];
+8.34|稽核測試期間資訊系統之保護|Protection of information systems during audit testing|稽核測試計畫與授權、唯讀存取紀錄
+C4.3|ISMS 範圍|Scope of the ISMS|ISMS 範圍文件（含介面與相依性、利害關係人）
+C5.1|領導與承諾|Leadership and commitment|高階主管資訊安全聲明、資源承諾
+C5.2|資訊安全政策|Information security policy|資訊安全政策（已文件化、已溝通、利害關係人可取得）
+C5.3|角色與責任|Roles, responsibilities and authorities|ISMS 角色與責任文件
+C6.1.2|資訊安全風險評鑑|Information security risk assessment|風險評鑑準則、流程與結果（風險登記簿）
+C6.1.3|資訊安全風險處理|Information security risk treatment|風險處理計畫（選定的處理選項與行動）
+C6.1.3d|適用性聲明（SoA）|Statement of Applicability|SoA：選定控制措施、理由、實作狀態與排除理由
+C6.2|資訊安全目標|Information security objectives|ISMS 目標文件、達成計畫、溝通紀錄
+C7.2|能力|Competence|訓練與能力紀錄（人員能力矩陣）
+C7.3|認知|Awareness|員工認知宣導紀錄
+C7.4|溝通|Communication|內外部溝通計畫與溝通內容
+C7.5|文件化資訊|Documented information|文件管制證據（更新、核准紀錄）
+C9.1|監視與量測|Monitoring, measurement, analysis and evaluation|ISMS 績效監控與量測報告
+C9.2|內部稽核|Internal audit|內部稽核計畫與報告
+C9.3|管理審查|Management review|管理審查會議紀錄（決議與行動）
+C10.2|不符合事項與矯正措施|Nonconformity and corrective action|不符合事項紀錄與矯正措施追蹤`;
+const GRP = ["5.1 5.2 5.3 5.4 5.5 5.6 5.8 5.35 5.36 5.37 8.34", "6.1 6.2 6.3 6.4 6.5 6.6 6.7", "5.9 5.10 5.11 5.12 5.13 5.14", "7.7 7.8 7.9 7.10 7.13 7.14 8.1", "5.15 5.16 5.17 5.18 8.2 8.3 8.4 8.5", "7.1 7.2 7.3 7.4 7.5 7.6 7.11 7.12", "8.6 8.7 8.8 8.9 8.18 8.19", "8.20 8.21 8.22 8.23 8.15 8.16 8.17 5.7", "8.25 8.26 8.27 8.28 8.29 8.31 8.32 8.33", "5.19 5.20 5.21 5.22 5.23 8.30", "5.24 5.25 5.26 5.27 5.28 5.29 5.30 6.8 8.13 8.14", "5.31 5.32 5.33 5.34 8.10 8.11 8.12 8.24", "C4.3 C5.1 C5.2 C5.3 C6.1.2 C6.1.3 C6.1.3d C6.2 C7.2 C7.3 C7.4 C7.5 C9.1 C9.2 C9.3 C10.2"];
 const NEWC = "5.7 5.23 5.30 7.4 8.9 8.10 8.11 8.12 8.16 8.23 8.28".split(" ");
 const CM = {}; CD.split("\n").forEach(l => { const [no, zh, en, ev] = l.split("|"); CM[no] = { no, zh, en, ev }; });
 const N = [];
-GRP.forEach((g, i) => g.split(" ").forEach((no, j) => { const c = CM[no]; N.push({ z: i, j, id: N.length, no, ti: c.zh, en: c.en, ev: c.ev, nw: NEWC.includes(no), th: { 5: "組織", 6: "人員", 7: "實體", 8: "技術" }[no.split(".")[0]] }); }));
-const SUM = Zs.map((z, i) => `主責：${z.p}・共 ${N.filter(n => n.z === i).length} 項控制措施`);
+GRP.forEach((g, i) => g.split(" ").forEach((no, j) => { const c = CM[no]; N.push({ z: i, j, id: N.length, no, ti: c.zh, en: c.en, ev: c.ev, nw: NEWC.includes(no), cl: no[0] === "C", th: no[0] === "C" ? "管理系統條款" : { 5: "組織", 6: "人員", 7: "實體", 8: "技術" }[no.split(".")[0]] }); }));
+const SUM = Zs.map((z, i) => `主責：${z.p}・共 ${N.filter(n => n.z === i).length} 項${i === Zs.length - 1 ? "條款" : "控制措施"}`);
 
 const F = [
   { a: 0, b: 2, e: "🛡️", c: "風險評鑑", t: "政策與角色（5.1、5.2）決定資產盤點與風險評鑑的範圍與準則。" },
@@ -394,7 +411,8 @@ const F = [
   { a: 10, b: 5, e: "🗺️", c: "異地備援", t: "營運持續（5.30）與備援（8.14）要一併考慮場域與環境威脅（7.5）。" },
   { a: 11, b: 9, e: "📜", c: "合約與個資", t: "供應商合約（5.20）必須納入個資保護與法規要求（5.34、5.31）。" },
   { a: 11, b: 8, e: "🎭", c: "測試資料", t: "測試資訊（8.33）與資料遮蔽（8.11）要搭配，避免真實個資進入測試環境。" },
-  { a: 0, b: 1, e: "📣", c: "政策宣導", t: "政策（5.1）要透過教育訓練（6.3）讓每位員工知道並簽收。" }
+  { a: 0, b: 1, e: "📣", c: "政策宣導", t: "政策（5.1）要透過教育訓練（6.3）讓每位員工知道並簽收。" },
+  { a: 12, b: 0, e: "📋", c: "條款與治理", t: "條款 5.1–5.3（領導、政策、角色）靠附錄 A 5.1–5.4 落實；條款 9.2、9.3（內稽、管審）也在治理島留下證據。" }
 ];
 
 const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
@@ -402,13 +420,14 @@ const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
 // ==========================================
 // 資安合規模擬器核心系統 (ISO 27001 Simulator)
 // ==========================================
-const ZDUE = [2, 3, 3, 4, 4, 5, 6, 7, 7, 8, 9, 5]; // 各島建議完成月份（依島序 01–12，可依專案調整）
+const ZDUE = [2, 3, 3, 4, 4, 5, 6, 7, 7, 8, 9, 5, 9]; // 各島建議完成月份（依島序 01–12，可依專案調整）
 const PKEY = "iso27001_island_progress";
 const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, ts: 0 };
 const TS = { mode: "idb", auth: false, key: "", db: null, pend: [], edit: null };
 let TL = [];
 const hdr = () => TS.key ? { "X-Key": TS.key } : {};
 const canEdit = () => TS.mode !== "srv" || !TS.auth || !!TS.key;
+const canUp = () => TS.mode !== "static" && canEdit();
 try { Object.assign(P, JSON.parse(localStorage.getItem(PKEY) || "{}")); } catch (e) {}
 const saveP = () => {
   P.ts = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {}
@@ -438,29 +457,24 @@ const idb = () => new Promise((res, rej) => { if (TS.db) return res(TS.db); let 
 const idbTx = (mode, fn) => idb().then(db => new Promise((res, rej) => { const t = db.transaction("files", mode), q = fn(t.objectStore("files")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
 const jpost = (u, o) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json", ...hdr() }, body: JSON.stringify(o) }).then(r => { if (!r.ok) throw new Error(u + " " + r.status); });
 const TPL = {
-  // 強制讀取 Git 上的 files.json
-  list: async () => {
-    try {
-      const res = await fetch("files.json", { cache: "no-store" });
-      const data = await res.json();
-      return data.map(f => ({ ...f, ctl: f.ctl || [] }));
-    } catch (e) {
-      return [];
-    }
+  list: async () => (TS.mode === "srv" ? await (await fetch("api/files", { cache: "no-store" })).json() : TS.mode === "static" ? await (await fetch("files.json", { cache: "no-store" })).json() : (await idbTx("readonly", s => s.getAll())).map(({ blob, ...m }) => m)).map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) })),
+  add: async (file, ctl) => {
+    const m = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: file.name, size: file.size, ctl, ts: Date.now() };
+    if (TS.mode === "srv") { const r = await fetch("api/upload?" + new URLSearchParams({ id: m.id, name: m.name, ctl: ctl.join(",") }), { method: "POST", headers: hdr(), body: file }); if (!r.ok) throw new Error("upload " + r.status); }
+    else await idbTx("readwrite", s => s.put({ ...m, blob: file }));
   },
-  // 下載時直接指向 Git 上的檔案路徑 (對應 json 裡的 id)
+  link: async (id, ctl) => { if (TS.mode === "srv") await jpost("api/meta", { id, ctl }); else { const rec = await idbTx("readonly", s => s.get(id)); rec.ctl = ctl; await idbTx("readwrite", s => s.put(rec)); } },
+  del: async id => { if (TS.mode === "srv") await fetch("api/files?id=" + id, { method: "DELETE", headers: hdr() }); else await idbTx("readwrite", s => s.delete(id)); },
   get: async id => {
-    const m = TL.find(f => f.id === id);
-    if (!m) return;
-    const a = document.createElement("a");
-    a.href = "files/" + m.name; // 這裡依據你實際存放的路徑與檔名規則調整
-    a.download = m.name;
-    a.click();
-  },
-  // 阻擋靜態網頁無法執行的上傳與修改功能
-  add: async () => alert("目前為 GitHub Pages 唯讀模式，無法上傳新檔案。"),
-  link: async () => alert("目前為 GitHub Pages 唯讀模式，無法修改控制措施對應。"),
-  del: async () => alert("目前為 GitHub Pages 唯讀模式，無法刪除檔案。")
+    const m = TL.find(f => f.id === id), a = document.createElement("a");
+    if (TS.mode === "srv") a.href = "files/" + id;
+    else if (TS.mode === "static") {
+      a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/");
+      const r = await fetch(a.href, { method: "HEAD" }).catch(() => null);
+      if (!r || !r.ok) throw new Error("找不到 Files/" + (m.path || m.name) + "，請確認 files.json 的 path 與 Files 資料夾裡的檔名一致");
+    } else a.href = URL.createObjectURL((await idbTx("readonly", s => s.get(id))).blob);
+    a.download = m.name; a.click();
+  }
 };
 
 let player = { month: 1, score: 60, hasTraining: false, hasBackup: false, hasAudit: false };
@@ -722,13 +736,13 @@ function boot() {
       if(!seen[n.id]) { seen[n.id] = 1; }
       fly([h.x - 4.5, 5.5, h.z + 6.8], [h.x, 1.0, h.z]);
       $("#cc").innerHTML = `<button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
-        <div class="ch"><div class="tile">${Zs[n.z].e}</div><div><div class="eb">${n.th}控制・${n.no}${n.nw ? "・★ 2022 新增" : ""}</div><h2>${n.ti}</h2></div></div>
+        <div class="ch"><div class="tile">${Zs[n.z].e}</div><div><div class="eb">${n.cl ? n.th + "・條款 " + n.no.slice(1) : n.th + "控制・" + n.no}${n.nw ? "・★ 2022 新增" : ""}</div><h2>${n.ti}</h2></div></div>
         <p class="lede" style="color:var(--mute); margin-top:0">${n.en}</p>
-        <div class="blk"><h4>${n.nw ? "稽核常見證據" : "建議文件／紀錄"}</h4><p>${n.ev}</p></div>
+        <div class="blk"><h4>${n.nw ? "稽核常見證據" : n.cl ? "必備文件／紀錄（條款要求）" : "建議文件／紀錄"}</h4><p>${n.ev}</p></div>
         <div class="blk"><h4>SoA 與實作狀態</h4><div class="zp" style="display:block">
           <select ${canEdit() ? "" : "disabled"} onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-          <label style="font-weight:600"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${canEdit() ? "" : "disabled"} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
-          <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" ${canEdit() ? "" : "disabled"} onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;">
+          <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${canEdit() ? "" : "disabled"} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
+          <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" ${canEdit() ? "" : "disabled"} onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;${n.cl ? "display:none" : ""}">
         </div></div>
         <div class="blk"><h4>模板與佐證文件</h4><div id="tplBox"></div></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;"><button class="btn" id="shareBtn" style="background:#3b82f6;">📸 儲存圖卡</button></div>`;
@@ -812,7 +826,7 @@ function boot() {
 
   sb.innerHTML = `
     <button class="sbx" onclick="document.getElementById('sb').classList.remove('open')">✕</button>
-    <div class="eb">ISO 27001 INDEX</div><h2>落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.length} 項控制措施（ISO/IEC 27001:2022 附錄 A）</p>
+    <div class="eb">ISO 27001 INDEX</div><h2>落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.filter(n => !n.cl).length} 項控制措施（附錄 A）＋ ${N.filter(n => n.cl).length} 項核心條款</p>
     <div class="tabs"><button data-tab="pg" class="on">輔導進度</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
     <div id="tabPg"></div>
     <div id="tabTp" hidden></div>
@@ -911,13 +925,13 @@ function boot() {
       <h3>各島進度</h3>
       <div class="rows">${Zs.map((z, i) => { const s = zState(i), d = zDone(i), t = zTot(i); return `<button class="row" onclick="openZone(${i})"><span class="dot" style="background:${s.c}"></span><span class="rt">${z.n}<small>${s.t}・期限第 ${ZDUE[i]} 月${P.own[i] ? "・" + esc(P.own[i]) : ""}</small><div class="pgbar"><i style="width:${t ? d * 100 / t : 0}%; background:${s.c}"></i></div></span><em style="color:${s.c}">${d}/${t}</em></button>`; }).join("")}</div>
       <div class="pgact" style="flex-wrap:wrap"><button class="btn" onclick="pgSoA()">匯出 SoA (CSV)</button><button class="btn" style="background:#3b82f6" onclick="pgExp()">匯出進度</button><button class="btn" style="background:#3b82f6" ${dis} onclick="pgImp()">匯入</button><button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>${TS.mode === "srv" && TS.auth && !TS.key ? '<button class="btn" style="background:#6366f1" onclick="pgKey()">🔑 顧問模式</button>' : ""}</div>
-      <p class="note">${TS.mode === "srv" ? "目前連線到區網伺服器：進度與模板由顧問更新後，所有人重新整理即可看到。" : "目前是單機模式：進度與模板只存在這個瀏覽器；要多人共用請用 server.py 啟動。"} 附錄 A 之外，條款 4–10（範圍、風險評鑑、風險處理計畫、SoA、內稽、管理審查）也必須完成。</p>`;
+      <p class="note">${TS.mode === "srv" ? "目前連線到區網伺服器：進度與模板由顧問更新後，所有人重新整理即可看到。" : TS.mode === "static" ? "目前是網站模式：模板來自 files.json；進度只存在各自的瀏覽器，請用「匯出進度」保存。" : "目前是單機模式：進度與模板只存在這個瀏覽器；要多人共用請用 server.py 啟動。"} 附錄 A 之外，條款 4–10（範圍、風險評鑑、風險處理計畫、SoA、內稽、管理審查）也必須完成。</p>`;
   }
   function renderTp() {
-    const ed = canEdit(), cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
+    const ed = canUp(), cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
     $("#tabTp").innerHTML = `
-      <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・${TS.mode === "srv" ? "存在區網伺服器，全員可下載" : "存在這個瀏覽器（單機）"}</p></div>
-      ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">唯讀模式：可下載模板。顧問請到「輔導進度」按「🔑 顧問模式」。</p>`}
+      <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・${TS.mode === "srv" ? "存在區網伺服器，全員可下載" : TS.mode === "static" ? "來自 files.json（網站內建，唯讀）" : "存在這個瀏覽器（單機）"}</p></div>
+      ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">${TS.mode === "static" ? "模板來自網站的 files.json 與 Files 資料夾（唯讀）。新增模板：把檔案放進 Files，執行 build_files_json.py，再 push。" : "唯讀模式：可下載模板。顧問請到「輔導進度」按「🔑 顧問模式」。"}</p>`}
       <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${c}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpEdit('${f.id}')">對應</button><button class="mini" onclick="tpDel('${f.id}')">刪除</button>` : ""}</div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
     const dz = $("#drop"); if (dz) { dz.ondragover = e => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = e => { e.preventDefault(); dz.classList.remove("on"); tpPick(e.dataTransfer.files); }; }
   }
@@ -929,7 +943,7 @@ function boot() {
   const tryDo = async fn => { try { await fn(); } catch (e) { alert("操作失敗：" + (e && e.message || e) + "\n（若在沙盒或 file:// 環境，瀏覽器可能不允許儲存檔案；請改用 server.py）"); } };
   window.renderTplBox = no => {
     const bx = $("#tplBox"); if (!bx) return;
-    const mine = TL.filter(f => f.ctl.includes(no)), other = TL.filter(f => !f.ctl.includes(no)), ed = canEdit();
+    const mine = TL.filter(f => f.ctl.includes(no)), other = TL.filter(f => !f.ctl.includes(no)), ed = canUp();
     bx.innerHTML = (mine.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpUnlink('${f.id}', '${no}')">移除</button>` : ""}</div>`).join("") || "<p class='mute' style='margin:0 0 8px'>尚未放入模板。</p>")
       + (ed ? `<label class="btn" style="background:#3b82f6; display:inline-block; cursor:pointer;">＋ 上傳模板<input type="file" multiple hidden onchange="tpUp(this.files, '${no}')"></label>${other.length ? `<select onchange="tpLinkOne(this.value, '${no}')" style="margin-left:6px; max-width:150px;"><option value="">連結既有…</option>${other.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join("")}</select>` : ""}` : "");
   };
@@ -945,7 +959,7 @@ function boot() {
   function refresh() {
     zBeacons.forEach((bc, i) => { const c = zState(i).c; bc.material.color.set(c); bc.material.emissive.set(c); });
     sync(); renderPg();
-    const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項控制措施（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
+    const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
   }
   window.pgSet = (k, v) => { if (!canEdit()) return; P[k] = v; saveP(); refresh(); };
   window.pgOwn = (i, v) => { if (!canEdit()) return; P.own[i] = v; saveP(); refresh(); };
@@ -958,7 +972,7 @@ function boot() {
   window.pgSoA = () => {
     const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"];
     const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "負責人", "模板檔案", "建議文件／紀錄"]];
-    N.forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n.split(" ")[1], n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
+    N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n.split(" ")[1], n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); a.download = `SoA_${P.client || "ISO27001"}.csv`; a.click();
   };
   window.pgKey = async () => { const k = prompt("輸入顧問金鑰（客戶唯讀，不需要輸入）"); if (!k) return; const r = await fetch("api/auth", { method: "POST", headers: { "X-Key": k } }); if (r.ok) { TS.key = k; try { sessionStorage.setItem("iso_key", k); } catch (e) {} renderTp(); refresh(); } else alert("金鑰不正確"); };
@@ -967,6 +981,7 @@ function boot() {
   async function init() {
     try { TS.key = sessionStorage.getItem("iso_key") || ""; } catch (e) {}
     try { const r = await fetch("api/info", { cache: "no-store" }); if (r.ok) { const j = await r.json(); TS.mode = "srv"; TS.auth = !!j.auth; } } catch (e) {}
+    if (TS.mode !== "srv") { try { const r = await fetch("files.json", { cache: "no-store" }); if (r.ok && Array.isArray(await r.json())) TS.mode = "static"; } catch (e) {} }
     if (TS.mode === "srv") await pullSrv();
     else { try { const r = await fetch("progress.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j && j.ts > P.ts) Object.assign(P, j); } } catch (e) {} }
     await loadTpl();
