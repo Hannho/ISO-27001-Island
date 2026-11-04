@@ -252,8 +252,8 @@ const $ = s => document.querySelector(s);
 // 地圖與資料庫設定 (ISO 27001 附錄 A)
 // ==========================================
 const Zs = [
-  { n: "C4–6 建立階段", p: "管理階層・資安室・顧問", e: "📋", c: "#64748b", x: -9, z: -6, r: 4.6, edge: "stripe", why: "ISMS 本文條款 4–6 是「建立」ISMS 的階段：範圍、領導承諾、政策、角色、風險評鑑與處理、SoA、目標。它們不是附錄 A 的控制措施，所以單獨成島，編號加 C（條款 5.2 是資訊安全政策，附錄 A 5.2 才是角色及責任）。" },
-  { n: "C7–10 運作與改進", p: "資安室・內稽・管理階層", e: "🔁", c: "#94a3b8", x: 9, z: -6, r: 4.6, edge: "brick", why: "ISMS 本文條款 7–10 是「運作與改進」階段：能力、認知、溝通、文件管制、績效量測、內部稽核、管理審查、矯正措施。與條款 4–6 分兩島，是因為 8 項一島剛好，而且兩個階段的完成時間不同。" },
+  { n: "4–6 條款建立階段", p: "管理階層・資安室・顧問", e: "📋", c: "#64748b", x: -9, z: -6, r: 4.6, edge: "stripe", why: "ISMS 本文條款 4–6 是「建立」ISMS 的階段：範圍、領導承諾、政策、角色、風險評鑑與處理、SoA、目標。它們不是附錄 A 的控制措施，所以單獨成島（條款 5.2 是資訊安全政策，附錄 A 5.2 才是角色及責任）；島名與卡片都標示「條款」，不會和附錄 A 混淆。" },
+  { n: "7–10 條款運作改進", p: "資安室・內稽・管理階層", e: "🔁", c: "#94a3b8", x: 9, z: -6, r: 4.6, edge: "brick", why: "ISMS 本文條款 7–10 是「運作與改進」階段：能力、認知、溝通、文件管制、績效量測、內部稽核、管理審查、矯正措施。與條款 4–6 分兩島，是因為 8 項一島剛好，而且兩個階段的完成時間不同。" },
   { n: "A.5.1–5.8 政策與治理", p: "管理階層・資安室", e: "📜", c: "#f59e0b", x: 0, z: 2, r: 5.4, edge: "mosaic", why: "附錄 A 第 5 章「組織控制」共 37 項，一座島放不下，所以依條次連續區段拆成 5 島。5.1–5.8：政策、角色、職務區隔、管理責任、聯繫、威脅情資、專案資安——都是管理階層與資安室要定調的事。" },
   { n: "A.5.9–5.18 資產與存取", p: "資產擁有者・IT", e: "🗂️", c: "#f97316", x: -14, z: 4, r: 4.9, edge: "brick", why: "5.9–5.18：資產清冊、可接受使用、資產歸還、分類、標示、傳送，以及身分、鑑別與存取權限。前半談『有什麼資產』，後半談『誰能碰』，連續的 10 項放同一島。" },
   { n: "A.5.19–5.23 供應商與雲端", p: "採購・法務・IT", e: "🤝", c: "#eab308", x: 14, z: 4, r: 4.6, edge: "stripe", why: "5.19–5.23：供應商關係、協議、ICT 供應鏈、供應商服務監督、雲端服務。5 項連續，主題一致。" },
@@ -451,6 +451,8 @@ const zState = i => {
   if (m && m > ZDUE[i]) return { t: "逾期", c: "#ef4444" };
   return d || zCtl(i).some(n => stOf(n.no) === 1) ? { t: "進行中", c: "#3b82f6" } : { t: "未開始", c: "#9ca3af" };
 };
+const dn = no => no[0] === "C" ? no.slice(1) : no;
+const dnl = no => no[0] === "C" ? "條款" + no.slice(1) : no;
 const fmtSz = b => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
 const ico = n => /\.(docx?|dotx?)$/i.test(n) ? "📝" : /\.(xlsx?|csv)$/i.test(n) ? "📊" : /\.pdf$/i.test(n) ? "📕" : /\.pptx?$/i.test(n) ? "📽️" : "📄";
 const tplN = no => TL.filter(f => f.ctl.includes(no)).length;
@@ -769,7 +771,7 @@ function boot() {
     lab.appendChild(e); pins.push(e);
   });
 
-  const rowC = n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${n.no}</span><span class="rt">${n.ti}${n.nw ? " ★" : ""}<small>${n.en}</small></span><em style="color:${isNA(n.no) ? "#9ca3af" : stOf(n.no) === 2 ? "#10b981" : stOf(n.no) === 1 ? "#3b82f6" : "#d1d5db"}">${isNA(n.no) ? "N/A" : ["○", "◐", "✓"][stOf(n.no)]}</em></button>`;
+  const rowC = n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}${n.nw ? " ★" : ""}<small>${n.en}</small></span><em style="color:${isNA(n.no) ? "#9ca3af" : stOf(n.no) === 2 ? "#10b981" : stOf(n.no) === 1 ? "#3b82f6" : "#d1d5db"}">${isNA(n.no) ? "N/A" : ["○", "◐", "✓"][stOf(n.no)]}</em></button>`;
   const chips = i => F.map((f, k) => [f, k]).filter(([f]) => f.a === i || f.b === i).map(([f, k]) => {
     const o = f.a === i ? f.b : f.a; return `<button class="chip" onclick="openFlow(${k})"><b>F${k + 1}</b>${f.c} ↔ ${Zs[o].n.split(" ")[0]}</button>`;
   }).join("");
@@ -779,7 +781,7 @@ function boot() {
     fly([z.x - 7.5, 10.5, z.z + 11.5], [z.x, 0.8, z.z]);
     F.forEach((f, k) => f.tube.visible = allFlows || f.a === i || f.b === i);
     $("#cc").innerHTML = `
-      <div class="ch"><div class="tile">${z.e}</div><div><div class="eb">${z.n.startsWith("C") ? "ISMS 本文條款" : "附錄 A（2022）"}・${z.p}</div><h2>${z.n}</h2></div></div>
+      <div class="ch"><div class="tile">${z.e}</div><div><div class="eb">${/條款/.test(z.n) ? "ISMS 本文條款" : "附錄 A（2022）"}・${z.p}</div><h2>${z.n}</h2></div></div>
       <p class="lede">${SUM[i]}</p>
       <div class="zp"><span>${zDone(i)}/${zTot(i)} 完成・${zState(i).t}・期限第 ${ZDUE[i]} 月</span><input placeholder="負責人" value="${esc(P.own[i])}" onchange="pgOwn(${i}, this.value)"></div>
       <div class="blk"><h4>為什麼這樣分組</h4><p>${z.why}</p></div><h3>此島的控制措施</h3><div class="rows">${N.filter(n => n.z === i).map(rowC).join("")}</div>
@@ -804,7 +806,7 @@ function boot() {
     pins.forEach((e, id) => {
       const n = N[id]; const showPin = names && !isWalkMode && (selZ >= 0 ? n.z === selZ : !!qLower); e.style.display = showPin ? "" : "none";
       let isMatch = false; if (qLower && [n.no, n.ti, n.en, n.ev, Zs[n.z].n].join("").toLowerCase().includes(qLower)) isMatch = true;
-      e.className = "pin" + (isNA(n.no) ? " na" : stOf(n.no) === 2 ? " done" : seen[id] ? " read" : "") + (id === selC ? " on" : "") + (isMatch ? " match" : ""); e.innerHTML = `<b>${stOf(n.no) === 2 ? "✓" : n.j + 1}</b>${n.no} ${n.ti}${tplN(n.no) ? " 📎" : ""}`;
+      e.className = "pin" + (isNA(n.no) ? " na" : stOf(n.no) === 2 ? " done" : seen[id] ? " read" : "") + (id === selC ? " on" : "") + (isMatch ? " match" : ""); e.innerHTML = `<b>${stOf(n.no) === 2 ? "✓" : n.j + 1}</b>${dn(n.no)} ${n.ti}${tplN(n.no) ? " 📎" : ""}`;
     });
     F.forEach(f => f.w.forEach(q => { q.tg.style.display = allFlows && !isWalkMode && (selF < 0 || F[selF] === f) ? "" : "none"; }));
     courtEls.forEach(c => { c.el.style.display = names && !isWalkMode ? "" : "none"; });
@@ -820,7 +822,7 @@ function boot() {
       <details data-z="${i}">
         <summary><b>${z.n.split(" ")[0]}</b><span>${z.n.split(" ")[1]}</span><em>${N.filter(q => q.z === i).length} ↗</em></summary>
         <div class="kids"><button class="go" onclick="openZone(${i})">探索此控制域 (${z.p}) ↗</button>
-        ${N.filter(n => n.z === i).map(n => `<button onclick="pins[${n.id}].onclick()"><i class="no" style="width:auto; padding:0 6px; border-radius:99px;">${n.no}</i>${n.ti}</button>`).join("")}</div>
+        ${N.filter(n => n.z === i).map(n => `<button onclick="pins[${n.id}].onclick()"><i class="no" style="width:auto; padding:0 6px; border-radius:99px;">${dn(n.no)}</i>${n.ti}</button>`).join("")}</div>
       </details>
     `).join("") + `</div>`;
     sync();
@@ -923,7 +925,7 @@ function boot() {
       <div class="pgbox"><div class="pgbig">${tot}<small>/ ${all} 項已完成</small><span>${pct}%</span></div><div class="pgbar"><i style="width:${pct}%; background:#10b981"></i></div>
         <p class="mute" style="margin:8px 0 0">${m ? `目前第 ${m} 個月，依計畫應完成 ${exp} 項。` : ""}${sts}${nNA ? `（另有 ${nNA} 項不適用）` : ""}</p></div>
       <h3>接下來該做</h3>
-      <div class="rows">${next.map(n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${n.no}</span><span class="rt">${n.ti}<small>${Zs[n.z].n.split(" ")[1]}・期限第 ${ZDUE[n.z]} 月${m > ZDUE[n.z] ? "・⚠️ 逾期" : ""}${stOf(n.no) === 1 ? "・進行中" : ""}</small></span></button>`).join("") || "<p class='mute'>🎉 全部完成，可以準備外部驗證了。</p>"}</div>
+      <div class="rows">${next.map(n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}<small>${Zs[n.z].n.split(" ")[1]}・期限第 ${ZDUE[n.z]} 月${m > ZDUE[n.z] ? "・⚠️ 逾期" : ""}${stOf(n.no) === 1 ? "・進行中" : ""}</small></span></button>`).join("") || "<p class='mute'>🎉 全部完成，可以準備外部驗證了。</p>"}</div>
       <h3>各島進度</h3>
       <div class="rows">${Zs.map((z, i) => { const s = zState(i), d = zDone(i), t = zTot(i); return `<button class="row" onclick="openZone(${i})"><span class="dot" style="background:${s.c}"></span><span class="rt">${z.n}<small>${s.t}・期限第 ${ZDUE[i]} 月${P.own[i] ? "・" + esc(P.own[i]) : ""}</small><div class="pgbar"><i style="width:${t ? d * 100 / t : 0}%; background:${s.c}"></i></div></span><em style="color:${s.c}">${d}/${t}</em></button>`; }).join("")}</div>
       <div class="pgact" style="flex-wrap:wrap"><button class="btn" onclick="pgSoA()">匯出 SoA (CSV)</button><button class="btn" style="background:#3b82f6" onclick="pgExp()">匯出進度</button><button class="btn" style="background:#3b82f6" ${dis} onclick="pgImp()">匯入</button><button class="btn" style="background:#9ca3af" ${dis} onclick="pgReset()">重置</button>${TS.mode === "srv" && TS.auth && !TS.key ? '<button class="btn" style="background:#6366f1" onclick="pgKey()">🔑 顧問模式</button>' : ""}</div>
@@ -934,11 +936,11 @@ function boot() {
     $("#tabTp").innerHTML = `
       <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・${TS.mode === "srv" ? "存在區網伺服器，全員可下載" : TS.mode === "static" ? "來自 files.json（網站內建，唯讀）" : "存在這個瀏覽器（單機）"}</p></div>
       ${ed ? `<div id="drop" class="drop"><span>拖曳檔案到這裡，或<label class="lk"> 選擇檔案<input type="file" multiple hidden onchange="tpPick(this.files)"></label></span><small>上傳後選擇適用的控制措施；不選＝通用模板</small></div><div id="tpForm"></div>` : `<p class="note">${TS.mode === "static" ? "模板來自網站的 files.json 與 Files 資料夾（唯讀）。新增模板：把檔案放進 Files，執行 build_files_json.py，再 push。" : "唯讀模式：可下載模板。顧問請到「輔導進度」按「🔑 顧問模式」。"}</p>`}
-      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${c}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpEdit('${f.id}')">對應</button><button class="mini" onclick="tpDel('${f.id}')">刪除</button>` : ""}</div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
+      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button>${ed ? `<button class="mini" onclick="tpEdit('${f.id}')">對應</button><button class="mini" onclick="tpDel('${f.id}')">刪除</button>` : ""}</div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
     const dz = $("#drop"); if (dz) { dz.ondragover = e => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = e => { e.preventDefault(); dz.classList.remove("on"); tpPick(e.dataTransfer.files); }; }
   }
   function showTpForm(sel) {
-    $("#tpForm").innerHTML = `<div class="zp" style="display:block"><b>${TS.edit ? "修改對應的控制措施" : "上傳：" + TS.pend.map(f => esc(f.name)).join("、")}</b><div style="margin:8px 0">${Zs.map((z, i) => `<details><summary style="padding:6px 4px">${z.e} ${z.n}</summary><div class="ck">${N.filter(n => n.z === i).map(n => `<label><input type="checkbox" value="${n.no}" ${sel.includes(n.no) ? "checked" : ""}> ${n.no} ${n.ti}</label>`).join("")}</div></details>`).join("")}</div><button class="btn" onclick="tpSave()">${TS.edit ? "儲存" : "上傳"}</button> <button class="btn" style="background:#9ca3af" onclick="document.getElementById('tpForm').innerHTML=''">取消</button></div>`;
+    $("#tpForm").innerHTML = `<div class="zp" style="display:block"><b>${TS.edit ? "修改對應的控制措施" : "上傳：" + TS.pend.map(f => esc(f.name)).join("、")}</b><div style="margin:8px 0">${Zs.map((z, i) => `<details><summary style="padding:6px 4px">${z.e} ${z.n}</summary><div class="ck">${N.filter(n => n.z === i).map(n => `<label><input type="checkbox" value="${n.no}" ${sel.includes(n.no) ? "checked" : ""}> ${dn(n.no)} ${n.ti}</label>`).join("")}</div></details>`).join("")}</div><button class="btn" onclick="tpSave()">${TS.edit ? "儲存" : "上傳"}</button> <button class="btn" style="background:#9ca3af" onclick="document.getElementById('tpForm').innerHTML=''">取消</button></div>`;
     $("#tpForm").scrollIntoView({ block: "nearest" });
   }
   async function loadTpl() { try { TL = await TPL.list(); } catch (e) { TL = []; } renderTp(); refresh(); }
