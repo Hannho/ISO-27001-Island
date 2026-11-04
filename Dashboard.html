@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ISO 27001 資安島｜條文進度儀表板</title>
+<script>try{if(!sessionStorage.getItem("iso_session"))location.replace("index.html")}catch(e){}</script>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="serious-mode dash-only" data-page="dashboard">
+<main class="app">
+  <section id="stage">
+    <article id="card" hidden>
+      <button id="cx" aria-label="關閉">×</button>
+      <div id="cc"></div>
+    </article>
+  </section>
+  <aside id="sb" class="open" aria-label="條文進度儀表板"></aside>
+</main>
+<script src="app.js"></script>
+<script>
+// 儀表板頁：沒有 3D，只把面板需要的幾個介面補上
+window.pins = N.map(n => ({ onclick: () => openItemCard(n) }));
+window.openFlow = () => {};
+window.openZone = i => {
+  const tab = document.querySelector('.tabs [data-tab="ov"]'); if (tab) tab.click();
+  ovFilter = "all"; ovQ = ""; ovClosed.delete(i); renderOv();
+  const el = document.getElementById("ovz" + i); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+document.getElementById("cx").onclick = () => { document.getElementById("card").hidden = true; };
+window.onProjectSelected = () => { sb.classList.add("open"); };
+enterApp();
+</script>
+</body>
+</html>
