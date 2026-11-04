@@ -252,19 +252,20 @@ const $ = s => document.querySelector(s);
 // 地圖與資料庫設定 (ISO 27001 附錄 A)
 // ==========================================
 const Zs = [
-  { n: "01 治理與稽核", p: "管理階層・資安室", e: "📜", c: "#10b981", x: -9, z: -6, r: 5.0, edge: "stripe", why: "5.1–5.6、5.8 是管理階層與資安室要親自做的事（政策、角色、職務區隔、專案資安），5.35–5.37 與 8.34 則是稽核與程序書。兩者都是「管理系統自己在運轉」的證據，也是外部稽核員最先看的地方。" },
-  { n: "02 人員", p: "人資", e: "👥", c: "#3b82f6", x: 9, z: -6, r: 4.6, edge: "brick", why: "6.1–6.7 沿著員工生命週期排列：背景查核、聘用、訓練、懲處、離職、保密、遠距工作，全部由人資主責，所以整個「人員控制」主題（扣除通報 6.8）放在同一座島。" },
-  { n: "03 資產與分類", p: "資產擁有者・文管", e: "🗂️", c: "#f4a261", x: 0, z: 2, r: 5.4, edge: "mosaic", why: "5.9–5.14 都在回答「有哪些資訊與資產、誰負責、怎麼分級、怎麼標示、怎麼傳遞」。這是風險評鑑的輸入，所以放在地圖中央，其他島都和它有連結。" },
-  { n: "04 設備與端點", p: "IT・總務", e: "💻", c: "#8b5cf6", x: -14, z: 4, r: 4.6, edge: "brick", why: "筆電、手機、隨身碟、攜出設備、報廢設備：7.7–7.10、7.13、7.14 與 8.1 是同一條設備生命週期（領用、使用、維護、汰除），由 IT 與總務共管，因此把實體主題中的設備類與端點裝置合併。" },
-  { n: "05 身分與存取", p: "IT・系統管理員", e: "🔑", c: "#e76f51", x: 14, z: 4, r: 4.6, edge: "stripe", why: "5.15–5.18（組織）與 8.2–8.5（技術）都在管「誰能存取什麼」。標準把它們分在兩個主題，但實務上由同一組 IT 人員一次處理，所以合併。" },
-  { n: "06 場域與機房", p: "總務・設施", e: "🏢", c: "#f59e0b", x: -7, z: 13, r: 4.6, edge: "stripe", why: "7.1–7.6、7.11、7.12 針對建築與空間：周界、門禁、監視、環境威脅、電力與佈纜，由總務與設施管理負責，和設備類控制的負責人不同。" },
-  { n: "07 系統維運", p: "IT 維運", e: "⚙️", c: "#0ea5e9", x: 7, z: 13, r: 4.6, edge: "mosaic", why: "8.6–8.9、8.18、8.19 是伺服器日常維運的工作：容量、惡意軟體、弱點修補、組態基準、特權工具與軟體安裝，由同一個維運團隊負責。" },
-  { n: "08 網路與監控", p: "網管・SOC", e: "📡", c: "#ec4899", x: -15, z: 18, r: 4.6, edge: "brick", why: "8.20–8.23 守住網路邊界；8.15–8.17 與 5.7 讓你「看得見」異常（日誌、監視、時鐘同步、威脅情資）。防護與偵測由網管與 SOC 同一組人負責，放在一起才串得起來。" },
-  { n: "09 安全開發", p: "研發團隊", e: "🛠️", c: "#14b8a6", x: 15, z: 18, r: 4.6, edge: "mosaic", why: "8.25–8.29、8.31–8.33 涵蓋需求、架構、撰寫、測試、環境區隔、變更到測試資料的完整開發流程，由研發主責。委外開發 8.30 的對象是供應商，所以歸到供應商島。" },
-  { n: "10 供應商與雲端", p: "採購・法務・IT", e: "🤝", c: "#eab308", x: 0, z: 22, r: 5.0, edge: "brick", why: "凡是把資料、系統或開發交給外部的情境：5.19–5.22 供應商、5.23 雲端服務、8.30 委外開發，都需要採購、法務與 IT 一起把關合約與監督。" },
-  { n: "11 事件與營運持續", p: "應變小組・IT 主管", e: "🚨", c: "#6366f1", x: -10, z: 28, r: 4.9, edge: "stripe", why: "5.24–5.28 與 6.8 是事故的通報、評估、回應、學習與證據；5.29、5.30、8.13、8.14 是中斷後的持續與復原（備份、備援）。事件到復原是一條連續的線，由同一個應變小組演練。" },
-  { n: "12 法遵與資料保護", p: "法務・資安・DPO", e: "⚖️", c: "#84cc16", x: 9, z: 27, r: 4.6, edge: "mosaic", why: "5.31–5.34 是法規、智慧財產、紀錄與個資；8.10–8.12 與 8.24 是資料刪除、遮蔽、洩露預防與加密。共同點是「保護資料本身並滿足法規」，由法務、DPO 與資安共同負責。" },
-  { n: "13 ISMS 核心條款", p: "管理階層・資安室・顧問", e: "📋", c: "#64748b", x: -23, z: -4, r: 5.8, edge: "stripe", why: "ISO 27001 本文第 4–10 條不是附錄 A 的控制措施，卻是取得認證的必要條件：範圍、政策、風險評鑑、SoA、內部稽核、管理審查都要有文件與紀錄。這座島收的是『有必備文件的條款』。編號加上 C，避免和附錄 A 混淆（例如條款 5.2 是資訊安全政策，附錄 A 5.2 才是角色及責任）。" }
+  { n: "C4–6 建立階段", p: "管理階層・資安室・顧問", e: "📋", c: "#64748b", x: -9, z: -6, r: 4.6, edge: "stripe", why: "ISMS 本文條款 4–6 是「建立」ISMS 的階段：範圍、領導承諾、政策、角色、風險評鑑與處理、SoA、目標。它們不是附錄 A 的控制措施，所以單獨成島，編號加 C（條款 5.2 是資訊安全政策，附錄 A 5.2 才是角色及責任）。" },
+  { n: "C7–10 運作與改進", p: "資安室・內稽・管理階層", e: "🔁", c: "#94a3b8", x: 9, z: -6, r: 4.6, edge: "brick", why: "ISMS 本文條款 7–10 是「運作與改進」階段：能力、認知、溝通、文件管制、績效量測、內部稽核、管理審查、矯正措施。與條款 4–6 分兩島，是因為 8 項一島剛好，而且兩個階段的完成時間不同。" },
+  { n: "A.5.1–5.8 政策與治理", p: "管理階層・資安室", e: "📜", c: "#f59e0b", x: 0, z: 2, r: 5.4, edge: "mosaic", why: "附錄 A 第 5 章「組織控制」共 37 項，一座島放不下，所以依條次連續區段拆成 5 島。5.1–5.8：政策、角色、職務區隔、管理責任、聯繫、威脅情資、專案資安——都是管理階層與資安室要定調的事。" },
+  { n: "A.5.9–5.18 資產與存取", p: "資產擁有者・IT", e: "🗂️", c: "#f97316", x: -14, z: 4, r: 4.9, edge: "brick", why: "5.9–5.18：資產清冊、可接受使用、資產歸還、分類、標示、傳送，以及身分、鑑別與存取權限。前半談『有什麼資產』，後半談『誰能碰』，連續的 10 項放同一島。" },
+  { n: "A.5.19–5.23 供應商與雲端", p: "採購・法務・IT", e: "🤝", c: "#eab308", x: 14, z: 4, r: 4.6, edge: "stripe", why: "5.19–5.23：供應商關係、協議、ICT 供應鏈、供應商服務監督、雲端服務。5 項連續，主題一致。" },
+  { n: "A.5.24–5.30 事件與營運持續", p: "應變小組・IT 主管", e: "🚨", c: "#fb923c", x: -23, z: -4, r: 4.6, edge: "mosaic", why: "5.24–5.30：事故管理的規劃、評鑑、回應、學習、證據，以及中斷期間的資安與 ICT 營運持續。共 7 項。" },
+  { n: "A.5.31–5.37 法遵與審查", p: "法務・資安室・內稽", e: "⚖️", c: "#d97706", x: 23, z: -4, r: 4.6, edge: "brick", why: "5.31–5.37：法規與契約要求、智慧財產權、紀錄保護、隱私與個資、獨立審查、遵循檢查、作業程序書。共 7 項。" },
+  { n: "A.6 人員控制", p: "人資", e: "👥", c: "#3b82f6", x: -7, z: 13, r: 4.6, edge: "stripe", why: "附錄 A 第 6 章「人員控制」共 8 項（6.1–6.8），數量不多，整章放一島，不拆。" },
+  { n: "A.7.1–7.6 場域與進出", p: "總務・設施", e: "🏢", c: "#10b981", x: -15, z: 18, r: 4.6, edge: "mosaic", why: "附錄 A 第 7 章「實體控制」共 14 項，拆成兩島。7.1–7.6：安全周界、進入、辦公室保全、實體監視、環境威脅、安全區域內工作——針對『空間』。" },
+  { n: "A.7.7–7.14 設備與公用設施", p: "IT・總務", e: "💻", c: "#84cc16", x: -10, z: 28, r: 4.6, edge: "brick", why: "7.7–7.14：桌面淨空、設備安置、場所外資產、儲存媒體、公用設施、佈纜、設備維護、設備汰除——針對『設備』。" },
+  { n: "A.8.1–8.8 端點與弱點", p: "IT 維運・系統管理員", e: "🔧", c: "#8b5cf6", x: 7, z: 13, r: 4.6, edge: "mosaic", why: "附錄 A 第 8 章「技術控制」共 34 項，拆成 4 島。8.1–8.8：端點、特權與存取限制、原始碼、鑑別、容量、惡意軟體、技術脆弱性。" },
+  { n: "A.8.9–8.14 組態資料備份", p: "IT 維運・DPO", e: "🗄️", c: "#6366f1", x: 15, z: 18, r: 4.6, edge: "stripe", why: "8.9–8.14：組態管理、資訊刪除、資料遮蔽、資料洩露預防、備份、備援。共 6 項。" },
+  { n: "A.8.15–8.24 日誌網路加密", p: "網管・SOC", e: "📡", c: "#0ea5e9", x: 0, z: 22, r: 4.9, edge: "brick", why: "8.15–8.24：日誌、監視、時鐘同步、特權公用程式、軟體安裝、網路安全、網路服務、網路區隔、網頁過濾、密碼技術。10 項連續，屬於偵測與網路防護。" },
+  { n: "A.8.25–8.34 安全開發", p: "研發團隊", e: "🛠️", c: "#14b8a6", x: 9, z: 27, r: 4.9, edge: "mosaic", why: "8.25–8.34：安全開發生命週期、應用程式安全要求、架構、安全程式碼、安全測試、委外開發、環境區隔、變更管理、測試資訊、稽核測試保護。整段都是開發流程。" }
 ];
 
 const COURT_LANDMARKS = [
@@ -390,29 +391,30 @@ C9.1|監視與量測|Monitoring, measurement, analysis and evaluation|ISMS 績�
 C9.2|內部稽核|Internal audit|內部稽核計畫與報告
 C9.3|管理審查|Management review|管理審查會議紀錄（決議與行動）
 C10.2|不符合事項與矯正措施|Nonconformity and corrective action|不符合事項紀錄與矯正措施追蹤`;
-const GRP = ["5.1 5.2 5.3 5.4 5.5 5.6 5.8 5.35 5.36 5.37 8.34", "6.1 6.2 6.3 6.4 6.5 6.6 6.7", "5.9 5.10 5.11 5.12 5.13 5.14", "7.7 7.8 7.9 7.10 7.13 7.14 8.1", "5.15 5.16 5.17 5.18 8.2 8.3 8.4 8.5", "7.1 7.2 7.3 7.4 7.5 7.6 7.11 7.12", "8.6 8.7 8.8 8.9 8.18 8.19", "8.20 8.21 8.22 8.23 8.15 8.16 8.17 5.7", "8.25 8.26 8.27 8.28 8.29 8.31 8.32 8.33", "5.19 5.20 5.21 5.22 5.23 8.30", "5.24 5.25 5.26 5.27 5.28 5.29 5.30 6.8 8.13 8.14", "5.31 5.32 5.33 5.34 8.10 8.11 8.12 8.24", "C4.3 C5.1 C5.2 C5.3 C6.1.2 C6.1.3 C6.1.3d C6.2 C7.2 C7.3 C7.4 C7.5 C9.1 C9.2 C9.3 C10.2"];
+const GRP = ["C4.3 C5.1 C5.2 C5.3 C6.1.2 C6.1.3 C6.1.3d C6.2", "C7.2 C7.3 C7.4 C7.5 C9.1 C9.2 C9.3 C10.2", "5.1 5.2 5.3 5.4 5.5 5.6 5.7 5.8", "5.9 5.10 5.11 5.12 5.13 5.14 5.15 5.16 5.17 5.18", "5.19 5.20 5.21 5.22 5.23", "5.24 5.25 5.26 5.27 5.28 5.29 5.30", "5.31 5.32 5.33 5.34 5.35 5.36 5.37", "6.1 6.2 6.3 6.4 6.5 6.6 6.7 6.8", "7.1 7.2 7.3 7.4 7.5 7.6", "7.7 7.8 7.9 7.10 7.11 7.12 7.13 7.14", "8.1 8.2 8.3 8.4 8.5 8.6 8.7 8.8", "8.9 8.10 8.11 8.12 8.13 8.14", "8.15 8.16 8.17 8.18 8.19 8.20 8.21 8.22 8.23 8.24", "8.25 8.26 8.27 8.28 8.29 8.30 8.31 8.32 8.33 8.34"];
 const NEWC = "5.7 5.23 5.30 7.4 8.9 8.10 8.11 8.12 8.16 8.23 8.28".split(" ");
 const CM = {}; CD.split("\n").forEach(l => { const [no, zh, en, ev] = l.split("|"); CM[no] = { no, zh, en, ev }; });
 const N = [];
 GRP.forEach((g, i) => g.split(" ").forEach((no, j) => { const c = CM[no]; N.push({ z: i, j, id: N.length, no, ti: c.zh, en: c.en, ev: c.ev, nw: NEWC.includes(no), cl: no[0] === "C", th: no[0] === "C" ? "管理系統條款" : { 5: "組織", 6: "人員", 7: "實體", 8: "技術" }[no.split(".")[0]] }); }));
-const SUM = Zs.map((z, i) => `主責：${z.p}・共 ${N.filter(n => n.z === i).length} 項${i === Zs.length - 1 ? "條款" : "控制措施"}`);
+const SUM = Zs.map((z, i) => { const zn = N.filter(n => n.z === i); return `主責：${z.p}・共 ${zn.length} 項${zn.some(n => n.cl) ? "條款" : "控制措施"}`; });
 
 const F = [
-  { a: 0, b: 2, e: "🛡️", c: "風險評鑑", t: "政策與角色（5.1、5.2）決定資產盤點與風險評鑑的範圍與準則。" },
-  { a: 1, b: 4, e: "🔄", c: "入離職權限", t: "人資的聘用、調職與離職（6.1、6.5）必須即時帶動帳號開通與權限回收（5.16、5.18）。" },
-  { a: 2, b: 3, e: "💻", c: "資產盤點", t: "資產清冊（5.9）要涵蓋筆電、媒體等端點設備，設備才有擁有者與分級。" },
-  { a: 3, b: 5, e: "🚚", c: "設備與機房", t: "設備安置與場所外資產（7.8、7.9）要和安全區域管制（7.1、7.2）一起設計。" },
-  { a: 5, b: 6, e: "⚡", c: "機房維運", t: "電力、空調與佈纜（7.11、7.12）是系統維運與容量管理（8.6）的前提。" },
-  { a: 6, b: 7, e: "🧱", c: "網路防護", t: "維運中的系統要靠網路區隔（8.22）與日誌、監視（8.15、8.16）才守得住。" },
-  { a: 8, b: 6, e: "🚀", c: "變更上線", t: "開發完成的版本須經變更管理（8.32）與環境區隔（8.31）才能進入營運。" },
-  { a: 4, b: 6, e: "🔐", c: "特權帳號", t: "特殊存取權限（8.2）要和特權工具、軟體安裝（8.18、8.19）一起管。" },
-  { a: 9, b: 4, e: "🤝", c: "供應商存取", t: "供應商若要連入系統，須符合合約條款（5.20）並受存取權限與鑑別控管（5.18、8.5）。" },
-  { a: 7, b: 10, e: "🚨", c: "告警到事件", t: "監視告警（8.16）是事件通報與評估（5.25）的起點。" },
-  { a: 10, b: 5, e: "🗺️", c: "異地備援", t: "營運持續（5.30）與備援（8.14）要一併考慮場域與環境威脅（7.5）。" },
-  { a: 11, b: 9, e: "📜", c: "合約與個資", t: "供應商合約（5.20）必須納入個資保護與法規要求（5.34、5.31）。" },
-  { a: 11, b: 8, e: "🎭", c: "測試資料", t: "測試資訊（8.33）與資料遮蔽（8.11）要搭配，避免真實個資進入測試環境。" },
-  { a: 0, b: 1, e: "📣", c: "政策宣導", t: "政策（5.1）要透過教育訓練（6.3）讓每位員工知道並簽收。" },
-  { a: 12, b: 0, e: "📋", c: "條款與治理", t: "條款 5.1–5.3（領導、政策、角色）靠附錄 A 5.1–5.4 落實；條款 9.2、9.3（內稽、管審）也在治理島留下證據。" }
+  { a: 2, b: 0, e: "🛡️", c: "政策與條款", t: "條款 5.2 的資訊安全政策與附錄 A 5.1 是同一份文件的兩種要求；角色（5.2）對應條款 5.3。" },
+  { a: 2, b: 1, e: "📈", c: "管理責任與審查", t: "管理階層責任（5.4）要靠管理審查（條款 9.3）留下證據。" },
+  { a: 2, b: 3, e: "🗂️", c: "政策到資產", t: "政策與角色（5.1、5.2）決定資產盤點、分類與存取規則（5.9–5.18）。" },
+  { a: 2, b: 4, e: "🤝", c: "政策到供應商", t: "供應商要求（5.19）源自資訊安全政策（5.1）。" },
+  { a: 3, b: 5, e: "🚨", c: "資產到事件", t: "資產清冊（5.9）讓事件評估（5.25）知道受影響的是什麼。" },
+  { a: 4, b: 6, e: "📜", c: "合約與個資", t: "供應商合約（5.20）必須納入法規與個資保護要求（5.31、5.34）。" },
+  { a: 1, b: 6, e: "🔍", c: "內稽與獨立審查", t: "內部稽核（條款 9.2）和獨立審查（5.35）都在檢驗控制措施是否有效。" },
+  { a: 3, b: 7, e: "🔄", c: "入離職權限", t: "聘用、調職與離職（6.1、6.5）要即時帶動帳號開通與權限回收（5.16、5.18）。" },
+  { a: 7, b: 8, e: "🚪", c: "人員與進出", t: "人員教育訓練（6.3）要涵蓋安全區域規則與實體進出（7.2、7.6）。" },
+  { a: 8, b: 9, e: "🚚", c: "空間與設備", t: "安全區域（7.1–7.6）決定設備怎麼安置與保護（7.8）。" },
+  { a: 7, b: 10, e: "💻", c: "遠距與端點", t: "遠距工作（6.7）要搭配端點裝置與鑑別控制（8.1、8.5）。" },
+  { a: 10, b: 11, e: "🧩", c: "弱點與組態", t: "技術脆弱性管理（8.8）要落實到組態基準（8.9）。" },
+  { a: 10, b: 12, e: "🧱", c: "惡意軟體與日誌", t: "防範惡意軟體（8.7）的偵測結果要進入日誌與監視（8.15、8.16）。" },
+  { a: 12, b: 13, e: "🚀", c: "區隔與開發", t: "網路區隔（8.22）支撐開發、測試、運作環境區隔（8.31）。" },
+  { a: 11, b: 13, e: "🎭", c: "測試資料", t: "資料遮蔽（8.11）與測試資訊（8.33）要搭配，避免真實個資進入測試環境。" },
+  { a: 9, b: 12, e: "📷", c: "實體與邏輯監視", t: "實體安全監視（7.4）與活動監視（8.16）互補，告警一起處理。" }
 ];
 
 const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
@@ -420,7 +422,7 @@ const BRIDGE_PAIRS = F.map(f => [f.a, f.b]);
 // ==========================================
 // 資安合規模擬器核心系統 (ISO 27001 Simulator)
 // ==========================================
-const ZDUE = [2, 3, 3, 4, 4, 5, 6, 7, 7, 8, 9, 5, 9]; // 各島建議完成月份（依島序 01–12，可依專案調整）
+const ZDUE = [5, 9, 3, 4, 8, 9, 7, 3, 5, 5, 6, 7, 7, 8]; // 各島建議完成月份（依島序 01–12，可依專案調整）
 const PKEY = "iso27001_island_progress";
 const P = { client: "", start: "", st: {}, na: {}, why: {}, own: {}, ts: 0 };
 const TS = { mode: "idb", auth: false, key: "", db: null, pend: [], edit: null };
@@ -481,18 +483,18 @@ let player = { month: 1, score: 60, hasTraining: false, hasBackup: false, hasAud
 
 const LIFE_EVENTS = [
   { triggerMonth: 3, title: "📧 社交工程釣魚演練", icon: "🎣", desc: " IT 部門發動了全公司的社交工程演練。你收到一封標題為「【人資公告】年度績效獎金調整確認表」的郵件，並附帶了一個連結。你會怎麼做？", options: [
-      { text: "直接點擊連結查看", desc: "獎金太誘人了，先看再說。", effect: () => { player.score -= 10; player.hasTraining = false; window.tod('danger'); fly([Zs[1].x, 3, Zs[1].z+5], [Zs[1].x, 0, Zs[1].z]); return "糟糕！你中計了。你在演練中被記錄為「點擊釣魚郵件」，合規分數下降 10 分，且必須重上資安課程。"; } },
-      { text: "通報 IT 部門", desc: "發現網址怪怪的，提高警覺。", effect: () => { player.score += 10; player.hasTraining = true; window.tod('safe'); fly([Zs[1].x, 3, Zs[1].z+5], [Zs[1].x, 0, Zs[1].z]); return "非常好！你成功辨識了釣魚信件並通報了應變小組。你的資安意識獲得了長官的肯定，合規分數增加 10 分。"; } }
+      { text: "直接點擊連結查看", desc: "獎金太誘人了，先看再說。", effect: () => { player.score -= 10; player.hasTraining = false; window.tod('danger'); fly([Zs[7].x, 3, Zs[7].z+5], [Zs[7].x, 0, Zs[7].z]); return "糟糕！你中計了。你在演練中被記錄為「點擊釣魚郵件」，合規分數下降 10 分，且必須重上資安課程。"; } },
+      { text: "通報 IT 部門", desc: "發現網址怪怪的，提高警覺。", effect: () => { player.score += 10; player.hasTraining = true; window.tod('safe'); fly([Zs[7].x, 3, Zs[7].z+5], [Zs[7].x, 0, Zs[7].z]); return "非常好！你成功辨識了釣魚信件並通報了應變小組。你的資安意識獲得了長官的肯定，合規分數增加 10 分。"; } }
   ]},
   { triggerMonth: 6, title: "💻 勒索軟體大規模攻擊", icon: "🦠", desc: "週一早上，公司多台伺服器遭到不明勒索軟體攻擊，重要資料庫被加密，螢幕上出現要求支付比特幣的恐嚇信！", options: [
       { text: "立刻斷網並啟動備份還原", desc: "考驗日常維運與備份機制的時刻。", effect: () => { 
-          if(player.hasTraining) { player.score += 15; player.hasBackup = true; window.tod('safe'); fly([Zs[6].x, 3, Zs[6].z+5], [Zs[6].x, 0, Zs[6].z]); return "因為員工訓練有素，第一時間拔除了網路線防止擴散。隨後 IT 部門依照 DRP 計畫從離線備份中成功還原系統，無資料遺失！分數上升 15 分。"; }
-          else { player.score -= 15; window.tod('danger'); fly([Zs[6].x, 3, Zs[6].z+5], [Zs[6].x, 0, Zs[6].z]); return "員工沒有及時通報導致災情擴大！雖然勉強從舊備份還原，但遺失了三天資料。合規分數大扣 15 分。"; }
+          if(player.hasTraining) { player.score += 15; player.hasBackup = true; window.tod('safe'); fly([Zs[10].x, 3, Zs[10].z+5], [Zs[10].x, 0, Zs[10].z]); return "因為員工訓練有素，第一時間拔除了網路線防止擴散。隨後 IT 部門依照 DRP 計畫從離線備份中成功還原系統，無資料遺失！分數上升 15 分。"; }
+          else { player.score -= 15; window.tod('danger'); fly([Zs[10].x, 3, Zs[10].z+5], [Zs[10].x, 0, Zs[10].z]); return "員工沒有及時通報導致災情擴大！雖然勉強從舊備份還原，但遺失了三天資料。合規分數大扣 15 分。"; }
       }},
       { text: "偷偷聯絡駭客付贖金", desc: "花錢消災，不要讓老闆知道。", effect: () => { player.score -= 30; window.tod('danger'); return "絕對錯誤的決定！付了錢不僅未必能解鎖，還違反了法規與通報程序。公司面臨巨大的合規與商譽危機，分數暴跌 30 分！"; } }
   ]},
   { triggerMonth: 9, title: "🕵️ 內部資安稽核", icon: "📋", desc: "為了準備年底的外部驗證，公司啟動了「內部稽核 (Internal Audit)」。內稽小組抽查到了你負責的「帳號權限管理」與「資產盤點」。", options: [
-      { text: "拿出完整的表單紀錄", desc: "平時都有乖乖填表。", effect: () => { player.score += 10; player.hasAudit = true; window.tod('safe'); fly([Zs[4].x, 3, Zs[4].z+5], [Zs[4].x, 0, Zs[4].z]); return "完美！你拿出了完整的「帳號申請單」與「資產清冊」，稽核員非常滿意。順利過關，分數增加 10 分。"; } },
+      { text: "拿出完整的表單紀錄", desc: "平時都有乖乖填表。", effect: () => { player.score += 10; player.hasAudit = true; window.tod('safe'); fly([Zs[1].x, 3, Zs[1].z+5], [Zs[1].x, 0, Zs[1].z]); return "完美！你拿出了完整的「帳號申請單」與「資產清冊」，稽核員非常滿意。順利過關，分數增加 10 分。"; } },
       { text: "現在馬上補簽名", desc: "糟糕，之前都偷懶沒留紀錄。", effect: () => { player.score -= 15; player.hasAudit = false; window.tod('danger'); return "被稽核員抓包了！補簽紀錄違反了真實性原則，被開立了「主要缺失 (Major NC)」。分數下降 15 分，需立即進行矯正措施。"; } }
   ]},
   { triggerMonth: 12, title: "🏛️ 外部驗證機構正式審查", icon: "🏅", desc: "專案的最終考驗！BSI/SGS 的外部稽核員來到了公司，將進行為期三天的 ISO 27001 驗證審查。這是決定能否拿到證書的關鍵時刻！", options: [
@@ -634,7 +636,7 @@ function boot() {
     const edgeMat = new THREE.MeshStandardMaterial({ map: makeEdgeTex(zn.edge), roughness: 0.8 });
     const topMat = new THREE.MeshStandardMaterial({ color: i === 2 ? "#f3d5a5" : "#dcd8cf", roughness: 0.88, flatShading: true });
     
-    if (i===0) topMat.color.setHex(0xccfbf1); if (i===4) topMat.color.setHex(0xe0e7ff); if (i===9) topMat.color.setHex(0xfef3c7);
+    if (i===0) topMat.color.setHex(0xccfbf1); if (i===3) topMat.color.setHex(0xe0e7ff); if (i===4) topMat.color.setHex(0xfef3c7);
     const baseBlock = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.9, 40), [edgeMat, topMat, edgeMat]);
     baseBlock.position.y = -0.2; baseBlock.receiveShadow = true; baseBlock.castShadow = true; baseBlock.userData.z = i; pick.push(baseBlock); G.add(baseBlock);
 
@@ -644,17 +646,17 @@ function boot() {
       const k1 = M(new THREE.BoxGeometry(1.2, 3.5, 1.2), "#10b981"); k1.position.set(-0.8, 1.9, 0);
       const k2 = M(new THREE.BoxGeometry(1.2, 2.0, 1.2), "#3b82f6"); k2.position.set(0.8, 1.2, 0);
       G.add(k1, k2);
-    } else if (i === 1) {
+    } else if (i === 7) {
       const h1 = M(new THREE.BoxGeometry(2, 1.5, 2), "#60a5fa"); h1.position.set(-1, 1.0, 0);
       const r1 = M(new THREE.ConeGeometry(1.8, 1.2, 4), "#dc2626"); r1.position.set(-1, 2.3, 0); r1.rotation.y = Math.PI/4;
       const h2 = M(new THREE.BoxGeometry(1.5, 1.2, 1.5), "#fcd34d"); h2.position.set(1.2, 0.9, 0.5);
       const r2 = M(new THREE.ConeGeometry(1.3, 0.9, 4), "#dc2626"); r2.position.set(1.2, 1.9, 0.5); r2.rotation.y = Math.PI/4;
       G.add(h1, r1, h2, r2);
-    } else if (i === 4) {
+    } else if (i === 3) {
       const tower = M(new THREE.CylinderGeometry(0.5, 1.5, 3.5, 6), "#1e293b", {r:0.2, m:0.8}); tower.position.set(0, 2.0, 0);
       const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), new THREE.MeshStandardMaterial({color: "#22d3ee", emissive: "#22d3ee", emissiveIntensity: 0.8})); core.position.set(0, 4.5, 0);
       G.add(tower, core);
-    } else if (i === 9) {
+    } else if (i === 4) {
       for(let gL=0; gL<3; gL++) { for(let gx=-1+gL*0.5; gx<=1-gL*0.5; gx+=1.0) { const gb = M(new THREE.BoxGeometry(0.8, 0.3, 1.6), "#fbbf24", {m:1.0, r:0.1}); gb.position.set(gx, 0.45 + gL*0.3, 0); G.add(gb); } }
     } else {
       const bld = M(new THREE.BoxGeometry(2.4, 2.0 + Math.random(), 2.0), zn.c); bld.position.set(0, 1.3, 0); G.add(bld);
@@ -668,7 +670,7 @@ function boot() {
       const hit = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.2, 1.7), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })); hit.position.y = 1.0; hit.userData.cid = n.id; pick.push(hit); cg.add(hit); G.add(cg); houses.push({ g: cg, n, x: zn.x + hx, z: zn.z + hz, i, j });
     }
 
-    for (let tk = 0; tk < 5; tk++) { const angle = tk * (Math.PI * 2 / 5) + Math.PI/5; const tr = radius - 0.8; const tree = (i === 1 || tk % 2 === 1) ? makePalmTree(0.92) : makeRoundTree(0.88, tk % 2 ? "#34d399" : "#10b981"); tree.position.set(Math.cos(angle) * tr, 0.3, Math.sin(angle) * tr); G.add(tree); }
+    for (let tk = 0; tk < 5; tk++) { const angle = tk * (Math.PI * 2 / 5) + Math.PI/5; const tr = radius - 0.8; const tree = (i === 7 || tk % 2 === 1) ? makePalmTree(0.92) : makeRoundTree(0.88, tk % 2 ? "#34d399" : "#10b981"); tree.position.set(Math.cos(angle) * tr, 0.3, Math.sin(angle) * tr); G.add(tree); }
     const bm = new THREE.MeshStandardMaterial({ color: "#9ca3af", emissive: "#9ca3af", emissiveIntensity: 0.5, flatShading: true });
     const bc = new THREE.Mesh(new THREE.OctahedronGeometry(0.5), bm); bc.scale.y = 1.4; bc.position.set(0, 6.2, 0); G.add(bc); zBeacons.push(bc);
     scene.add(G);
@@ -777,7 +779,7 @@ function boot() {
     fly([z.x - 7.5, 10.5, z.z + 11.5], [z.x, 0.8, z.z]);
     F.forEach((f, k) => f.tube.visible = allFlows || f.a === i || f.b === i);
     $("#cc").innerHTML = `
-      <div class="ch"><div class="tile">${z.e}</div><div><div class="eb">附錄 A（2022）・${z.p}</div><h2>${z.n}</h2></div></div>
+      <div class="ch"><div class="tile">${z.e}</div><div><div class="eb">${z.n.startsWith("C") ? "ISMS 本文條款" : "附錄 A（2022）"}・${z.p}</div><h2>${z.n}</h2></div></div>
       <p class="lede">${SUM[i]}</p>
       <div class="zp"><span>${zDone(i)}/${zTot(i)} 完成・${zState(i).t}・期限第 ${ZDUE[i]} 月</span><input placeholder="負責人" value="${esc(P.own[i])}" onchange="pgOwn(${i}, this.value)"></div>
       <div class="blk"><h4>為什麼這樣分組</h4><p>${z.why}</p></div><h3>此島的控制措施</h3><div class="rows">${N.filter(n => n.z === i).map(rowC).join("")}</div>
@@ -972,7 +974,7 @@ function boot() {
   window.pgSoA = () => {
     const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"];
     const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "負責人", "模板檔案", "建議文件／紀錄"]];
-    N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n.split(" ")[1], n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
+    N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n, n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); a.download = `SoA_${P.client || "ISO27001"}.csv`; a.click();
   };
   window.pgKey = async () => { const k = prompt("輸入顧問金鑰（客戶唯讀，不需要輸入）"); if (!k) return; const r = await fetch("api/auth", { method: "POST", headers: { "X-Key": k } }); if (r.ok) { TS.key = k; try { sessionStorage.setItem("iso_key", k); } catch (e) {} renderTp(); refresh(); } else alert("金鑰不正確"); };
