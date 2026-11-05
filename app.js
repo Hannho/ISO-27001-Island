@@ -76,7 +76,7 @@ const CD = `5.1|資訊安全政策|Policies for information security|資訊安�
 6.1|背景查核|Screening|背景查核程序與結果紀錄
 6.2|聘用條款及條件|Terms and conditions of employment|聘僱合約中的資安條款
 6.3|資訊安全認知、教育及訓練|Information security awareness, education and training|訓練計畫、簽到與測驗、社交工程演練結果
-6.4|懲處過程|Disciplinary process|懲處辦法與處理紀錄
+6.4|惩處過程|Disciplinary process|懲處辦法與處理紀錄
 6.5|聘用終止或變更後之責任|Responsibilities after termination or change of employment|離職／調職保密義務告知、權限交接單
 6.6|保密協議|Confidentiality or non-disclosure agreements|NDA 範本與簽署紀錄
 6.7|遠距工作|Remote working|遠距工作政策、VPN／MFA 設定
@@ -297,13 +297,14 @@ window.submitReview = async no => {
   if (!canSubmit()) return;
   const fi = document.getElementById("subFiles"), files = fi && fi.files ? Array.from(fi.files) : [];
   const note = ((document.getElementById("subNote") || {}).value || "").trim();
+  const expiry = document.getElementById("subExpiry") ? document.getElementById("subExpiry").value : null; // Added expiry field
   if (!files.length) return alert("請先選擇要上傳的佐證文件");
   const big = files.find(f => f.size > 25 * 1048576); if (big) return alert("「" + big.name + "」超過 25 MB，請壓縮後再上傳");
   const btn = document.getElementById("subBtn"); if (btn) { btn.disabled = true; btn.textContent = "上傳中…"; }
   try {
     const metas = [];
     for (const f of files) { const id = "fl_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); await FS.put(id, f); metas.push({ id, name: f.name, size: f.size, type: f.type }); }
-    const sub = { id: "sb_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), by: currentUser.u, byName: currentUser.name, at: Date.now(), note, files: metas, status: "pending" };
+    const sub = { id: "sb_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), by: currentUser.u, byName: currentUser.name, at: Date.now(), note, files: metas, status: "pending", expiry: expiry };
     (P.sub[no] = P.sub[no] || []).push(sub);
     if (stOf(no) < 1) P.st[no] = 1;
     saveDB(); window.__flash = { no, id: sub.id }; refresh(); openItemCard(N.find(n => n.no === no));
@@ -359,8 +360,20 @@ const showProjectLobby = () => {
     html += `<p class="mute">目前沒有可用的專案。</p>`;
   }
 
-  html += `</div>
-    <button class="sim-btn" style="position:static;width:100%;justify-content:center;padding:12px;margin-top:20px;background:#ef4444" onclick="doLogout()">登出</button>
+  html += `</div>`;
+  
+  // RBAC: 只有 admin 看得到匯入匯出區塊
+  if (isAdmin()) {
+    html += `
+    <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="sim-btn" style="position:static;width:50%;justify-content:center;padding:12px;background:#3b82f6" onclick="exportData()">💾 匯出資料 (JSON)</button>
+        <button class="sim-btn" style="position:static;width:50%;justify-content:center;padding:12px;background:#10b981" onclick="document.getElementById('importData').click()">📂 匯入資料 (JSON)</button>
+        <input type="file" id="importData" style="display:none;" accept=".json" onchange="importData(event)">
+    </div>`;
+  }
+  
+  html += `
+    <button class="sim-btn" style="position:static;width:100%;justify-content:center;padding:12px;margin-top:${isAdmin() ? '10px' : '20px'};background:#ef4444" onclick="doLogout()">登出</button>
     </div></div>`;
   
   const existing = document.getElementById("projLobby");
@@ -401,7 +414,7 @@ window.renderUserBar = () => {
   if (!currentUser) { if (b) b.remove(); document.body.classList.remove("has-user"); return; }
   if (!b) { b = document.createElement("div"); b.id = "userBar"; document.body.appendChild(b); }
   const role = { admin: "管理員", auditor: "審核者", boss: "老闆", user: "一般員工" }[currentUser.r] || currentUser.r;
-  b.innerHTML = `<span class="ub-av">${esc(String(currentUser.name || currentUser.u).slice(0, 1))}</span><span class="ub-n"><b>${esc(currentUser.name)}</b><small>${role}・${esc(currentUser.u)}</small></span><span class="ub-p" title="目前專案">📁 ${esc(P.name || "")}</span><button class="bell" onclick="openInbox()" title="審核收件匣／我的送審">🔔${bellCount() ? `<span class="cnt">${bellCount()}</span>` : ""}</button><button onclick="showProjectLobby()">切換專案</button><button class="out" onclick="doLogout()">登出</button>`;
+  b.innerHTML = `<span class="ub-av">${esc(String(currentUser.name || currentUser.u).slice(0, 1))}</span><span class="ub-n"><b>${esc(currentUser.name)}</b><small>${role}・${esc(currentUser.u)}</small></span><span class="ub-p" title="目前專案">📁 ${esc(P.name || "")}</span><button class="bell" onclick="openInbox()" title="審核收件匣／我的送審">🔔${bellCount() ? `<span class="cnt">${bellCount()}</span>` : ""}</button><button onclick="showProjectLobby()">切換/備份專案</button><button class="out" onclick="doLogout()">登出</button>`;
   document.body.classList.add("has-user");
   document.title = (bellCount() ? "(" + bellCount() + ") " : "") + "ISO 27001 資安島｜條文進度儀表板";
 };
@@ -423,6 +436,13 @@ if (PAGE !== "login" && !currentUser) location.replace("index.html");
 
 
 // ==========================================
+// 全域變數宣告 (修正隱式全域變數與宣告順序問題)
+// ==========================================
+let ovFilter = "all", ovQ = ""; 
+const ovClosed = new Set();
+
+
+// ==========================================
 // 側邊面板（條文總覽 / 輔導進度 / 模板庫 / 合規索引）— 3D 頁與儀表板頁共用
 // ==========================================
 // 與 3D 場景溝通的掛鉤；儀表板頁沒有 3D，這些都是空操作
@@ -438,37 +458,57 @@ function sync() { if (window.sync3d) window.sync3d(); }
 
 // 條文詳情卡（點任一條條文會開啟）
 function openItemCard(n) {
-    const disableEdit = !canEdit() ? "disabled" : "";
-    const disableAudit = !canAudit() ? "disabled" : "";
     const T = typeof TASKS !== "undefined" ? TASKS[n.no] : null;
     const guide = T ? `<div class="blk guide"><h4>📋 要做什麼</h4><ol>${T.steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol><p class="ok"><b>✅ 驗收標準：</b>${esc(T.ok)}</p><p class="own"><b>👤 建議負責：</b>${esc(T.own)}</p></div>` : "";
     const subs = subsOf(n.no), last = subs[subs.length - 1], fl = window.__flash && window.__flash.no === n.no ? window.__flash : null; window.__flash = null;
     let subBlk = "";
     if (fl) { const fs = subs.find(x => x.id === fl.id); if (fs) subBlk += `<div class="flash">✅ 已送出，狀態為「待審核」，老闆與審核者的收件匣會出現這筆請求。<a class="btn" href="${mailtoHref(n, fs)}">✉️ 另外用 Email 通知</a></div>`; }
-    if (canSubmit() && !isNA(n.no) && stOf(n.no) !== 2 && !(last && last.status === "pending")) subBlk += `<div class="subform"><h5>${last && last.status === "rejected" ? "依審核意見補件後重新送審" : "上傳佐證文件並送審"}</h5><input type="file" id="subFiles" multiple><textarea id="subNote" placeholder="備註（選填）：說明文件版本、對應哪個要求或特殊情況"></textarea><button class="btn" id="subBtn" onclick="submitReview('${n.no}')">上傳並標記為待審核</button><p class="mute">送出後狀態變為「待審核」，老闆與審核者會在收件匣收到請求。</p></div>`;
+    if (canSubmit() && !isNA(n.no) && stOf(n.no) !== 2 && !(last && last.status === "pending")) subBlk += `<div class="subform"><h5>${last && last.status === "rejected" ? "依審核意見補件後重新送審" : "上傳佐證文件並送審"}</h5><input type="file" id="subFiles" multiple><textarea id="subNote" placeholder="備註（選填）：說明文件版本、對應哪個要求或特殊情況"></textarea><div style="margin-bottom:8px;"><label style="font-size:13px; font-weight:bold;">佐證文件有效期限 (選填)：</label><input type="date" id="subExpiry" class="search" style="margin-bottom:0; width:auto;"></div><button class="btn" id="subBtn" onclick="submitReview('${n.no}')">上傳並標記為待審核</button><p class="mute">送出後狀態變為「待審核」，老闆與審核者會在收件匣收到請求。</p></div>`;
     else if (canSubmit() && stOf(n.no) === 2) subBlk += `<p class="mute">✅ 此項已核准完成。</p>`;
     const hist = subs.length ? subs.slice().reverse().map(x => subHtml(n, x, "cd", false)).join("") : `<p class="mute">尚無送審紀錄。</p>`;
 
-    $("#cc").innerHTML = `<button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
+    const sbox = document.getElementById("cc");
+    if(sbox){
+        sbox.innerHTML = `<button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
       <div class="ch"><div class="tile">${Zs[n.z].e}</div><div><div class="eb">${n.cl ? n.th + "・條款 " + n.no.slice(1) : n.th + "控制・" + n.no}${n.nw ? "・★ 2022 新增" : ""}</div><h2>${n.ti}</h2></div></div>
       <p class="lede" style="color:var(--mute); margin-top:0">${n.en}</p>
       ${guide}
       <div class="blk"><h4>${n.nw ? "稽核常見證據" : n.cl ? "必備文件／紀錄（條款要求）" : "建議文件／紀錄"}</h4><p>${n.ev}</p></div>
       <div class="blk"><h4>送審與審核紀錄</h4>${subBlk}<div class="subhist">${hist}</div></div>
-      <div class="blk"><h4>SoA 與實作狀態</h4><div class="zp" style="display:block">
-        <select ${disableEdit} onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
-        <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${disableEdit} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
-        <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" ${disableEdit} onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;${n.cl ? "display:none" : ""}">
-      </div></div>
-      <div class="blk"><h4>稽核狀態</h4><div class="zp">
-        <select ${disableAudit} onchange="setNC('${n.no}', this.value)" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : 'var(--line)'}; color:${ncOf(n.no) > 1 ? '#ef4444' : 'inherit'}">
-          ${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"].map((t, k) => `<option value="${k}" ${ncOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}
-        </select>
-      </div></div>
+      
+      <div class="blk"><h4>SoA 與實作狀態</h4>
+        ${canEdit() ? `
+        <div class="zp" style="display:block">
+          <select onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+          <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
+          <input placeholder="排除理由（需與風險評鑑一致）" value="${esc(P.why[n.no])}" onchange="setWhy('${n.no}', this.value)" style="width:100%; box-sizing:border-box; margin-top:8px;${n.cl ? "display:none" : ""}">
+        </div>` : `
+        <div class="zp" style="display:block; background:transparent; border:1px solid var(--line);">
+          <p style="margin:0;">狀態：<b style="color:${isNA(n.no) ? '#a1a1aa' : ['#9ca3af', '#3b82f6', '#10b981'][stOf(n.no)]}">${isNA(n.no) ? "不適用" : ["未開始", "進行中", "已完成"][stOf(n.no)]}</b> ${isNA(n.no) && P.why[n.no] ? `<br><span style="color:var(--mute);font-size:11px;">(理由：${esc(P.why[n.no])})</span>` : ""}</p>
+        </div>
+        `}
+      </div>
+      
+      ${canAudit() || ncOf(n.no) > 0 ? `
+      <div class="blk"><h4>稽核狀態</h4>
+        ${canAudit() ? `
+        <div class="zp">
+          <select onchange="setNC('${n.no}', this.value)" style="border-color:${ncOf(n.no) > 1 ? '#ef4444' : 'var(--line)'}; color:${ncOf(n.no) > 1 ? '#ef4444' : 'inherit'}">
+            ${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"].map((t, k) => `<option value="${k}" ${ncOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
+        </div>` : `
+        <div class="zp" style="background:transparent; border:1px solid var(--line);">
+          <b style="color:${ncOf(n.no) > 1 ? '#ef4444' : '#f59e0b'}; margin:0;">${["無稽核缺失", "觀察事項 (OFI)", "次要缺失 (Minor NC)", "主要缺失 (Major NC)"][ncOf(n.no)]}</b>
+        </div>
+        `}
+      </div>` : ''}
+
       <div class="blk"><h4>模板與佐證文件</h4><div id="tplBox"></div></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;"><button class="btn" id="shareBtn" style="background:#3b82f6;">📸 儲存圖卡</button></div>`;
     renderTplBox(n.no);
-    $("#card").hidden = false; sync();
+    const cardEl = document.getElementById("card");
+    if(cardEl) cardEl.hidden = false; 
+    sync();
 
     setTimeout(() => {
       const shareBtn = $("#shareBtn");
@@ -483,6 +523,7 @@ function openItemCard(n) {
         };
       }
     }, 50);
+    }
 }
 
   const rowC = n => `<button class="row" onclick="pins[${n.id}].onclick()"><span class="cno">${dn(n.no)}</span><span class="rt">${n.ti}${n.nw ? " ★" : ""}<small>${n.en}</small></span><em style="color:${isNA(n.no) ? "#9ca3af" : stOf(n.no) === 2 ? "#10b981" : stOf(n.no) === 1 ? "#3b82f6" : "#d1d5db"}">${isNA(n.no) ? "N/A" : ["○", "◐", "✓"][stOf(n.no)]}</em></button>`;
@@ -492,6 +533,7 @@ function openItemCard(n) {
 
   function fill(q) {
     const b = $("#bd"); q = (q || "").trim(); window.searchQ = q; 
+    if(!b) return;
     if (q) {
       const m = N.filter(n => [n.no, n.ti, n.en, n.ev, Zs[n.z].n].join("").includes(q));
       b.innerHTML = m.length ? m.map(rowC).join("") : `<p class="mute">找不到相關合規案例。</p>`; sync(); return;
@@ -505,18 +547,18 @@ function openItemCard(n) {
     `).join("") + `</div>`;
     sync();
   }
-
-  if (document.getElementById("sb")) sb.innerHTML = `
+  const sb = document.getElementById("sb");
+  if (sb) { 
+      sb.innerHTML = `
     <button class="sbx" onclick="document.getElementById('sb').classList.remove('open')">✕</button>
     <div class="eb">ISO 27001 INDEX</div><h2 id="sbProjName">落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.filter(n => !n.cl).length} 項控制措施（附錄 A）＋ ${N.filter(n => n.cl).length} 項核心條款</p>
-    <div class="tabs"><button data-tab="ov" class="on">條文總覽</button><button data-tab="ib">收件匣</button><button data-tab="pg">輔導進度</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
+    <div class="tabs"><button data-tab="ov" class="on">條文總覽</button><button data-tab="ib">收件匣</button><button data-tab="pg">進度與成就</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
     <div id="tabOv"><div id="ovSum"></div><div id="ovCtl"><input id="ovQ" class="search" type="search" placeholder="搜尋條次、措施名稱…（例：8.13、備份）"></div><div id="ovList"></div></div>
     <div id="tabIb" hidden></div>
     <div id="tabPg" hidden></div>
     <div id="tabTp" hidden></div>
     <div id="tabIdx" hidden><input id="q" class="search" type="search" placeholder="搜尋條次、措施名稱、證據關鍵字…"><div id="bd"></div></div>
   `;
-  if (document.getElementById("sb")) {
   fill(""); $("#q").oninput = e => fill(e.target.value);
   $("#ovQ").oninput = e => { ovQ = e.target.value.trim(); renderOv(); };
   }
@@ -527,7 +569,7 @@ function openItemCard(n) {
   // ==========================================
   function renderIb() {
     const box = $("#tabIb"); if (!box || !currentUser) return;
-    const cnt = bellCount(), tb = sb.querySelector('[data-tab="ib"]');
+    const cnt = bellCount(), tb = sb ? sb.querySelector('[data-tab="ib"]') : null;
     if (tb) tb.innerHTML = (canReview() ? "審核收件匣" : "我的送審") + (cnt ? ` <span class="cnt">${cnt}</span>` : "");
     let h = "";
     if (canReview()) {
@@ -547,42 +589,57 @@ function openItemCard(n) {
     if (ch) { saveDB(); renderUserBar(); }
   }
   window.openInbox = () => {
-    const t = sb.querySelector('[data-tab="ib"]'); if (t) t.click();
+    const t = sb ? sb.querySelector('[data-tab="ib"]') : null; 
+    if (t) t.click();
     const c = document.getElementById("card"); if (c) c.hidden = true;
-    sb.classList.add("open"); sb.scrollTop = 0;
+    if(sb) {
+        sb.classList.add("open"); 
+        sb.scrollTop = 0;
+    }
   };
 
   // ==========================================
   // 條文總覽：每一條條文的進度一目了然
   // ==========================================
-  let ovFilter = "all", ovQ = ""; const ovClosed = new Set();
   const ST_TXT = ["未開始", "進行中", "已完成"], NC_TXT = ["", "OFI", "Minor NC", "Major NC"];
   window.ovSet = f => { ovFilter = (ovFilter === f ? "all" : f); renderOv(); };
   window.ovTog = (i, o) => { if (o) ovClosed.delete(i); else ovClosed.add(i); };
   function ovInfo(n) {
     const na = isNA(n.no), s = stOf(n.no), m = curMonth();
-    return { na, s, rv: revOf(n.no), nc: ncOf(n.no), late: !na && s < 2 && m > 0 && m > ZDUE[n.z] };
+    let expired = false;
+    const subs = subsOf(n.no);
+    if(subs.length > 0) {
+        const last = subs[subs.length - 1];
+        if(last.expiry && new Date(last.expiry) < new Date()) expired = true;
+    }
+    return { na, s, rv: revOf(n.no), nc: ncOf(n.no), late: !na && s < 2 && m > 0 && m > ZDUE[n.z], expired: expired };
   }
   function ovMatch(n, f) {
     const x = ovInfo(n);
     if (ovQ && ![n.no, n.ti, n.en, n.ev].join(" ").toLowerCase().includes(ovQ.toLowerCase())) return false;
     switch (f) {
       case "rv": return x.rv === "pending"; case "todo": return !x.na && x.s === 0; case "doing": return !x.na && x.s === 1; case "done": return !x.na && x.s === 2;
-      case "na": return x.na; case "nc": return x.nc > 0; case "late": return x.late; default: return true;
+      case "na": return x.na; case "nc": return x.nc > 0; case "late": return x.late; case "exp": return x.expired; default: return true;
     }
   }
   function renderOv() {
     const box = $("#ovList"); if (!box) return;
-    const keep = sb.scrollTop, I = N.map(ovInfo);
-    const cnt = { all: N.length, rv: 0, todo: 0, doing: 0, done: 0, na: 0, nc: 0, late: 0 };
-    I.forEach(x => { if (x.na) cnt.na++; else cnt[["todo", "doing", "done"][x.s]]++; if (x.nc) cnt.nc++; if (x.late) cnt.late++; if (x.rv === "pending") cnt.rv++; });
+    const keep = sb ? sb.scrollTop : 0;
+    const I = N.map(ovInfo);
+    const cnt = { all: N.length, rv: 0, todo: 0, doing: 0, done: 0, na: 0, nc: 0, late: 0, exp: 0 };
+    I.forEach(x => { if (x.na) cnt.na++; else cnt[["todo", "doing", "done"][x.s]]++; if (x.nc) cnt.nc++; if (x.late) cnt.late++; if (x.rv === "pending") cnt.rv++; if(x.expired) cnt.exp++; });
     const pctOf = list => { const a = list.filter(n => !isNA(n.no)), d = a.filter(n => stOf(n.no) === 2).length; return [d, a.length, a.length ? Math.round(d * 100 / a.length) : 0]; };
     const [aD, aT, aP] = pctOf(N), [cD, cT, cP] = pctOf(N.filter(n => n.cl)), [xD, xT, xP] = pctOf(N.filter(n => !n.cl));
     const card = (f, t, c) => `<button class="ov-card ${ovFilter === f ? "on" : ""}" style="--c:${c}" onclick="ovSet('${f}')"><b>${cnt[f]}</b><span>${t}</span></button>`;
-    $("#ovSum").innerHTML = `
+    
+    const sumBox = $("#ovSum");
+    if(sumBox) {
+        sumBox.innerHTML = `
       <div class="ov-big"><div><b>${aP}%</b><span>${aD} / ${aT} 項已完成</span></div>
         <div class="ov-sub"><div>核心條款 <b>${cD}/${cT}</b><i style="--w:${cP}%"></i></div><div>附錄 A 控制措施 <b>${xD}/${xT}</b><i style="--w:${xP}%"></i></div></div></div>
-      <div class="ov-cards">${card("all", "全部", "#64748b")}${card("done", "已完成", "#10b981")}${card("rv", "待審核", "#f59e0b")}${card("doing", "進行中", "#3b82f6")}${card("todo", "未開始", "#9ca3af")}${card("late", "逾期", "#ef4444")}${card("nc", "有稽核缺失", "#f59e0b")}${card("na", "不適用", "#a1a1aa")}</div>`;
+      <div class="ov-cards">${card("all", "全部", "#64748b")}${card("done", "已完成", "#10b981")}${card("rv", "待審核", "#f59e0b")}${card("doing", "進行中", "#3b82f6")}${card("todo", "未開始", "#9ca3af")}${card("late", "逾期", "#ef4444")}${card("nc", "有稽核缺失", "#f59e0b")}${card("na", "不適用", "#a1a1aa")}${card("exp", "證據過期", "#ef4444")}</div>`;
+    }
+    
     let html = "", shown = 0;
     Zs.forEach((z, i) => {
       const rows = N.filter(n => n.z === i && ovMatch(n, ovFilter)); if (!rows.length) return; shown += rows.length;
@@ -596,14 +653,31 @@ function openItemCard(n) {
           return `<div class="ov-row ${x.na ? "na" : ""}"><span class="cno" onclick="pins[${n.id}].onclick()">${dn(n.no)}</span>
             <span class="ov-t" onclick="pins[${n.id}].onclick()">${n.ti}${n.nw ? " ★" : ""}<small>${n.en}</small></span>
             <span class="ov-st"><span class="ov-pb"><i style="--w:${x.na ? 0 : x.s * 50}%;--c:${c}"></i></span>${ctl}</span>
-            <span class="ov-fl">${x.rv === "pending" ? `<span class="bdg" style="--c:#f59e0b">⏳ 待審核</span>` : x.rv === "rejected" && x.s < 2 ? `<span class="bdg" style="--c:#ef4444">已退回</span>` : ""}${x.late ? `<span class="bdg" style="--c:#ef4444">逾期</span>` : ""}${x.nc ? `<span class="bdg" style="--c:${x.nc > 1 ? "#ef4444" : "#f59e0b"}">${NC_TXT[x.nc]}</span>` : ""}${tn ? `<span class="bdg" style="--c:#6366f1">📎 ${tn}</span>` : ""}</span></div>`; }).join("")}
+            <span class="ov-fl">${x.rv === "pending" ? `<span class="bdg" style="--c:#f59e0b">⏳ 待審核</span>` : x.rv === "rejected" && x.s < 2 ? `<span class="bdg" style="--c:#ef4444">已退回</span>` : ""}${x.late ? `<span class="bdg" style="--c:#ef4444">逾期</span>` : ""}${x.nc ? `<span class="bdg" style="--c:${x.nc > 1 ? "#ef4444" : "#f59e0b"}">${NC_TXT[x.nc]}</span>` : ""}${tn ? `<span class="bdg" style="--c:#6366f1">📎 ${tn}</span>` : ""}${x.expired ? `<span class="bdg" style="--c:#ef4444">⚠️ 證據已過期</span>` : ""}</span></div>`; }).join("")}
         </div></details>`;
     });
     box.innerHTML = html || `<p class="mute" style="margin-top:16px">沒有符合條件的條文。</p>`;
-    sb.scrollTop = keep;
+    if(sb) sb.scrollTop = keep;
+  }
+
+  function getBadges() {
+      let badges = [];
+      const d = totDone(), all = totAll();
+      if(d === all && all > 0) badges.push({icon: "🏆", name: "大滿貫", desc: "完成所有條款"});
+      if(zDone(8) + zDone(9) === zTot(8) + zTot(9) && zTot(8) > 0) badges.push({icon: "🏰", name: "堅不可摧的堡壘", desc: "完成所有實體控制"});
+      
+      let hasNC = false;
+      N.forEach(n => {if(ncOf(n.no) > 0) hasNC = true;});
+      if(!hasNC && d > 10) badges.push({icon: "🏅", name: "法遵模範生", desc: "無任何稽核缺失"});
+
+      if(d >= Math.floor(all/2) && all > 0) badges.push({icon: "🚀", name: "進度過半", desc: "完成超過一半的進度"});
+      return badges;
   }
 
   function renderPg() {
+    const tabPg = $("#tabPg");
+    if(!tabPg) return;
+
     const m = curMonth(), tot = totDone(), all = totAll(), pct = all ? Math.round(tot * 100 / all) : 0, ed = canEdit(), dis = ed ? "" : "disabled";
     const exp = Zs.reduce((s, _, i) => s + (m >= ZDUE[i] ? zTot(i) : 0), 0), nNA = N.length - all;
     const sts = !m ? "請先設定專案起始月，系統才能判斷是否逾期" : tot >= exp ? "🟢 進度正常" : tot >= exp - 5 ? "🟡 略為落後" : "🔴 明顯落後";
@@ -623,10 +697,26 @@ function openItemCard(n) {
       </div>` 
       : (isAuditor() && P.auditor === currentUser.u ? `<p style="color:#f59e0b;font-weight:700;font-size:12px;">✅ 您是本專案的指派稽核員</p>` : '');
 
-    $("#tabPg").innerHTML = `
-      <div style="margin-bottom:12px;">
-        <button class="btn" style="background:#4b5563;font-size:12px;padding:6px 12px;" onclick="showProjectLobby()">🔙 回專案列表</button>
+    const badges = getBadges();
+    const badgeHTML = `
+      <div style="background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:16px;">
+        <h4 style="margin:0 0 10px; font-size:14px; color:var(--ink);">🌟 專案成就解鎖</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            ${badges.length > 0 ? badges.map(b => `
+                <div style="display:flex; flex-direction:column; align-items:center; background:var(--card-bg); padding:10px; border-radius:10px; border:1px solid var(--line); width:80px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                    <span style="font-size:24px;">${b.icon}</span>
+                    <b style="font-size:11px; margin-top:4px; line-height:1.2;">${b.name}</b>
+                </div>
+            `).join("") : '<p class="mute" style="font-size:12px; margin:0;">尚未解鎖成就，繼續努力！</p>'}
+        </div>
       </div>
+    `;
+
+    tabPg.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <button class="btn" style="background:#4b5563;font-size:12px;padding:6px 12px;" onclick="showProjectLobby()">🔙 專案設定 / 備份</button>
+      </div>
+      ${badgeHTML}
       <input class="search" placeholder="客戶 / 專案名稱" ${dis} value="${esc(P.client)}" onchange="pgSet('client', this.value)">
       <label class="pgl">專案起始月 <input type="month" class="search" ${dis} style="width:auto; margin:0 0 0 8px;" value="${esc(P.start)}" onchange="pgSet('start', this.value)"></label>
       ${auditorSelect}
@@ -643,11 +733,13 @@ function openItemCard(n) {
       </div>`;
   }
   function renderTp() {
+    const tabTp = $("#tabTp");
+    if(!tabTp) return;
     const cov = new Set(); TL.forEach(f => f.ctl.forEach(c => cov.add(c)));
-    $("#tabTp").innerHTML = `
+    tabTp.innerHTML = `
       <div class="pgbox"><div class="pgbig">${TL.length}<small>份模板</small><span>${cov.size}/${N.length}</span></div><p class="mute" style="margin:6px 0 0">已有模板的控制措施 ${cov.size} 項・來自 files.json（網站內建，唯讀）</p></div>
       <p class="note">模板來自 GitHub 的 files.json 與 Files 資料夾（唯讀）。新增模板請從 GitHub 儲存庫新增檔案。</p>
-      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button></div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
+      <div>${TL.map(f => `<div class="fi2"><span class="fe">${ico(f.name)}</span><div class="fn"><b>${esc(f.name)}</b><small>${fmtSz(f.size)}・${f.ctl.length ? f.ctl.length > 0 ? f.ctl.map(c => `<a onclick="openCtl('${c}')">${dnl(c)}</a>`).join("") : "通用" : "通用"}</small></div><button class="mini" onclick="tpGet('${f.id}')">下載</button></div>`).join("") || "<p class='mute'>還沒有模板。</p>"}</div>`;
   }
   
   async function loadTpl() { try { TL = await TPL.list(); } catch (e) { TL = []; } renderTp(); refresh(); }
@@ -664,12 +756,25 @@ function openItemCard(n) {
   function refresh() {
     if (currentUser) renderUserBar();
     if(P) {
-      $("#sbProjName").innerText = P.name || "未命名專案";
+      const projNameEl = document.getElementById("sbProjName");
+      if(projNameEl) projNameEl.innerText = P.name || "未命名專案";
     }
     if (window.on3dRefresh) window.on3dRefresh();
     sync(); renderPg(); renderOv(); renderIb();
     const t = totDone(), all = totAll() || 1, rl = document.getElementById("realLabel"), rf = document.getElementById("tr-fill2");
     if (rl) rl.innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; if (rf) rf.style.width = `${t * 100 / all}%`;
+
+    // 依據身份隱藏特定 Tab，讓畫面更乾淨
+    if (sb) {
+        const tpTab = sb.querySelector('[data-tab="tp"]'); // 模板庫
+        const pgTab = sb.querySelector('[data-tab="pg"]'); // 進度與成就
+        
+        // 總經理或稽核員不用看模板庫
+        if (tpTab) tpTab.style.display = (isBoss() || isAuditor()) ? "none" : "block";
+        
+        // 一般員工不須看進度與成就
+        if (pgTab) pgTab.style.display = isUser() ? "none" : "block";
+    }
   }
   
   window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; P.sub = {}; saveDB(); refresh(); } };
@@ -677,14 +782,49 @@ function openItemCard(n) {
     const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"], NC_ST = ["無缺失", "OFI", "Minor NC", "Major NC"];
     const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "稽核缺失", "負責人", "模板檔案", "建議文件／紀錄"]];
     N.filter(n => !n.cl).forEach(n => { const na = isNA(n.no); rows.push([n.no, n.ti, n.en, n.th, Zs[n.z].n, n.nw ? "是" : "", na ? "否" : "是", na ? P.why[n.no] : "", na ? "" : ST[stOf(n.no)], NC_ST[ncOf(n.no)], P.own[n.z] || "", TL.filter(f => f.ctl.includes(n.no)).map(f => f.name).join("；"), n.ev]); });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); a.download = `SoA_${P.client || "ISO27001"}.csv`; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); 
+    a.download = `SoA_${P.client || "ISO27001"}.csv`; 
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 100);
   };
   
-  if (document.getElementById("sb")) sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Ov", "Ib", "Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); if (bt.dataset.tab === "ib") { renderIb(); ackMine(); } };
+  // Data Export/Import
+  window.exportData = () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href",     dataStr);
+      downloadAnchorNode.setAttribute("download", "iso27001_backup_" + Date.now() + ".json");
+      document.body.appendChild(downloadAnchorNode); // required for firefox
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+  };
+
+  window.importData = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const importedDB = JSON.parse(e.target.result);
+              if(confirm("確定要匯入備份資料嗎？這將會覆蓋您目前的專案資料。")) {
+                  DB = importedDB;
+                  saveDB();
+                  alert("匯入成功！");
+                  showProjectLobby(); // Refresh lobby
+              }
+          } catch (err) {
+              alert("檔案格式錯誤，匯入失敗。");
+          }
+      };
+      reader.readAsText(file);
+      event.target.value = ""; // Reset input
+  };
+
+  if (sb) sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Ov", "Ib", "Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); if (bt.dataset.tab === "ib") { renderIb(); ackMine(); } };
   
   async function init() {
     await loadUsers();
     await loadTpl();
   }
   
-  if (document.getElementById("sb")) { renderTp(); init(); }
+  if (sb) { renderTp(); init(); }

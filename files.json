@@ -5,7 +5,9 @@
     "path": "G1 - Information Security Management System (ISMS) Scope Document.docx",
     "size": 340000,
     "ctl": [
-      "C4.3"
+      "C4.3",
+      "C4.1",
+      "C4.2"
     ],
     "ts": 1793760428357
   },
@@ -85,7 +87,8 @@
     "path": "M8 - Nonconformity Process.docx",
     "size": 15000,
     "ctl": [
-      "C10.2"
+      "C10.2",
+      "C10.1"
     ],
     "ts": 1793760428357
   },
@@ -117,7 +120,8 @@
     "path": "RT 1 - Risk Assessment & Treatment Methodology.docx",
     "size": 15000,
     "ctl": [
-      "C6.1.2"
+      "C6.1.2",
+      "C6.1"
     ],
     "ts": 1793760428357
   },
@@ -128,7 +132,8 @@
     "size": 15000,
     "ctl": [
       "C6.1.2",
-      "C6.1.3"
+      "C6.1.3",
+      "C8.2"
     ],
     "ts": 1793760428357
   },
@@ -138,7 +143,8 @@
     "path": "RT 3 Risk Treatment Template - Empty.docx",
     "size": 15000,
     "ctl": [
-      "C6.1.3"
+      "C6.1.3",
+      "C8.3"
     ],
     "ts": 1793760428357
   },
