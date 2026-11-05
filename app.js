@@ -668,7 +668,8 @@ function openItemCard(n) {
     }
     if (window.on3dRefresh) window.on3dRefresh();
     sync(); renderPg(); renderOv(); renderIb();
-    const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
+    const t = totDone(), all = totAll() || 1, rl = document.getElementById("realLabel"), rf = document.getElementById("tr-fill2");
+    if (rl) rl.innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; if (rf) rf.style.width = `${t * 100 / all}%`;
   }
   
   window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; P.sub = {}; saveDB(); refresh(); } };
