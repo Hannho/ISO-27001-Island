@@ -1,26 +1,6 @@
 [
-  {
-    "u": "admin",
-    "p": "admin123",
-    "r": "admin",
-    "name": "系統管理員"
-  },
-  {
-    "u": "audit",
-    "p": "audit123",
-    "r": "auditor",
-    "name": "外部稽核員"
-  },
-  {
-    "u": "user",
-    "p": "user123",
-    "r": "user",
-    "name": "一般員工"
-  },
-  {
-    "u": "boss",
-    "p": "888888",
-    "r": "user",
-    "name": "總經理"
-  }
+  { "u": "admin", "p": "admin123", "r": "admin",   "name": "系統管理員", "email": "" },
+  { "u": "boss",  "p": "888888",   "r": "boss",    "name": "總經理",     "email": "" },
+  { "u": "audit", "p": "audit123", "r": "auditor", "name": "審核者",     "email": "" },
+  { "u": "user",  "p": "user123",  "r": "user",    "name": "一般員工",   "email": "" }
 ]

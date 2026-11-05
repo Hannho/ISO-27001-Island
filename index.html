@@ -23,7 +23,7 @@
   <button class="sim-btn" style="position:static;width:100%;justify-content:center;padding:12px;margin-top:5px" onclick="doLogin()">登入系統</button>
   <div id="loginErr">帳號或密碼錯誤</div>
   <div id="hint"><b style="color:var(--ink)">找不到 users.json，使用預設帳號：</b><br>
-    • <b>admin</b>（管理員 → 儀表板）<br>• <b>audit</b>（稽核員 → 儀表板）<br>• <b>user</b>（一般員工 → 3D 島嶼）<br>密碼皆為 123</div>
+    • <b>admin</b>（管理員）<br>• <b>boss</b>（老闆，審核）<br>• <b>audit</b>（審核者）<br>• <b>user</b>（員工，上傳文件送審）<br>密碼皆為 123</div>
 </div>
 <div id="diag" style="position:fixed;left:10px;bottom:8px;font:11px/1.5 monospace;color:#475569"></div>
 <script>
@@ -40,7 +40,7 @@
       goHome(m);
     } catch (err) { showMsg("登入失敗：" + err.message); }
   };
-  var goHome = function (u) { location.href = (u.r === "admin" || u.r === "auditor") ? "dashboard.html" : "island.html"; };
+  var goHome = function (u) { location.href = "dashboard.html"; };
 </script>
 <script src="app.js"></script>
 <script>

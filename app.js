@@ -166,13 +166,17 @@ let currentUser = readSession();
 const PAGE = (document.body && document.body.dataset.page) || "";
 let USERS = [
   { u: "admin", p: "123", r: "admin", name: "管理員" },
-  { u: "audit", p: "123", r: "auditor", name: "稽核員" },
+  { u: "audit", p: "123", r: "auditor", name: "審核者" },
+  { u: "boss", p: "123", r: "boss", name: "總經理" },
   { u: "user", p: "123", r: "user", name: "使用者" }
 ];
 
 const isAdmin = () => currentUser && currentUser.r === "admin";
 const isAuditor = () => currentUser && currentUser.r === "auditor";
 const isUser = () => currentUser && currentUser.r === "user";
+const isBoss = () => currentUser && currentUser.r === "boss";
+const canReview = () => isAdmin() || isAuditor() || isBoss(); // 老闆、審核者、管理員可核准或退回
+const canSubmit = () => isUser() || isAdmin();                // 員工上傳文件並送審
 const canEdit = () => isAdmin(); // 只有 admin 可以改進度與基本資訊
 const canAudit = () => isAdmin() || isAuditor(); // admin 和 audit 可以留稽核缺失
 
@@ -198,7 +202,16 @@ try {
 } catch (e) {}
 
 const saveDB = () => { try { localStorage.setItem(PKEY, JSON.stringify(DB)); } catch (e) {} };
-const loadProject = (pid) => { currentProjectId = pid; P = DB[pid]; refresh(); };
+const ensureP = p => { if (p) p.sub = p.sub || {}; return p; };
+Object.values(DB).forEach(ensureP);
+const loadProject = (pid) => { currentProjectId = pid; P = ensureP(DB[pid]); refresh(); };
+// 同一個瀏覽器的其他分頁（例如老闆開另一個分頁）有更新時，即時同步
+window.addEventListener("storage", e => {
+  if (e.key !== PKEY || !e.newValue) return;
+  try { DB = JSON.parse(e.newValue); } catch (_) { return; }
+  Object.values(DB).forEach(ensureP);
+  if (DB[currentProjectId]) { P = DB[currentProjectId]; if (typeof refresh === "function") refresh(); }
+});
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const isNA = no => !!P.na[no];
@@ -229,6 +242,83 @@ const TPL = {
     try { const res = await fetch("files.json", { cache: "no-store" }); if (!res.ok) return []; const data = await res.json(); return data.map(f => ({ ...f, ctl: (f.ctl || []).filter(c => N.some(n => n.no === c)) })); } catch (e) { return []; }
   },
   get: async id => { const m = TL.find(f => f.id === id); if (!m) return; const a = document.createElement("a"); a.href = "Files/" + (m.path || m.name).split("/").map(encodeURIComponent).join("/"); a.download = m.name; a.click(); }
+};
+
+
+// ==========================================
+// 上傳文件 → 待審核 → 老闆／審核者核准或退回
+// 注意：目前資料存在「各人自己的瀏覽器」，跨電腦通知需要後端（見說明）
+// ==========================================
+const FS = {
+  db: null,
+  open() { return this.db ? Promise.resolve(this.db) : new Promise((res, rej) => { const r = indexedDB.open("iso27001_files", 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => { this.db = r.result; res(r.result); }; r.onerror = () => rej(r.error); }); },
+  async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("f", "readwrite"); t.objectStore("f").put(blob, id); t.oncomplete = res; t.onerror = () => rej(t.error); }); },
+  async get(id) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction("f").objectStore("f").get(id); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+};
+const subsOf = no => (P.sub && P.sub[no]) || [];
+const lastSub = no => subsOf(no).slice(-1)[0];
+const revOf = no => { const s = lastSub(no); return s ? s.status : ""; };
+const allSubs = () => { const r = []; N.forEach(n => subsOf(n.no).forEach(s => r.push({ n, s }))); return r; };
+const pendingSubs = () => allSubs().filter(x => x.s.status === "pending");
+const mySubs = () => allSubs().filter(x => currentUser && x.s.by === currentUser.u);
+const bellCount = () => !currentUser ? 0 : canReview() ? pendingSubs().length : mySubs().filter(x => x.s.status !== "pending" && !x.s.ack).length;
+const fmtT = t => { const d = new Date(t), p = x => String(x).padStart(2, "0"); return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const RV = { pending: ["待審核", "#f59e0b"], approved: ["已核准", "#10b981"], rejected: ["已退回", "#ef4444"] };
+
+const mailtoHref = (n, s) => {
+  const to = USERS.filter(u => (u.r === "boss" || u.r === "auditor") && u.email).map(u => u.email).join(",");
+  const link = location.href.split(/[?#]/)[0].replace(/[^/]*$/, "dashboard.html");
+  const subj = `[ISO 27001 待審核] ${dn(n.no)} ${n.ti}`;
+  const body = `${currentUser.name} 已送審：\n專案：${P.name}\n條文：${dn(n.no)} ${n.ti}\n備註：${s.note || "（無）"}\n檔案：${s.files.map(f => f.name).join("、")}\n\n請登入審核：${link}`;
+  return `mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+};
+
+// 一筆送審紀錄（收件匣與條文詳情共用）
+function subHtml(n, s, ctx, showItem) {
+  const [t, c] = RV[s.status] || RV.pending;
+  const files = (s.files || []).map(f => `<button class="fchip" data-fid="${f.id}" data-fn="${esc(f.name)}" onclick="dlFile(this)">${ico(f.name)} ${esc(f.name)} <small>${fmtSz(f.size)}</small></button>`).join("");
+  let tail = "";
+  if (s.status === "pending" && canReview()) {
+    tail = `<textarea id="cm_${ctx}_${s.id}" placeholder="審核意見（退回時必填）"></textarea><div class="acts"><button class="btn ok" onclick="decideSub('${n.no}','${s.id}',true,'${ctx}')">✅ 核准</button><button class="btn no" onclick="decideSub('${n.no}','${s.id}',false,'${ctx}')">↩ 退回補件</button></div>`;
+  } else if (s.status === "pending") {
+    tail = `<div class="cmt">⏳ 已通知老闆與審核者，等待處理中</div>`;
+  } else {
+    tail = `<div class="cmt"><b style="color:${c}">${t}</b>・${esc(s.decidedName || "")}・${fmtT(s.decidedAt)}${s.comment ? "<br>" + esc(s.comment) : ""}</div>`;
+  }
+  const isNew = !canReview() && s.status !== "pending" && !s.ack;
+  return `<div class="subc ${isNew ? "new" : ""}"><div class="sh">${showItem ? `<b><a href="#" onclick="openItemCard(N[${n.id}]);return false">${dn(n.no)} ${esc(n.ti)}</a></b>` : ""}<span>${esc(s.byName || s.by)}・${fmtT(s.at)}</span>${isNew ? '<span class="bdg" style="--c:#3b82f6">NEW</span>' : ""}<span class="st bdg" style="--c:${c}">${t}</span></div>${s.note ? `<div class="note">${esc(s.note)}</div>` : ""}<div>${files}</div>${tail}</div>`;
+}
+
+window.dlFile = async el => {
+  try { const b = await FS.get(el.dataset.fid); if (!b) return alert("找不到檔案：檔案只存在上傳者的瀏覽器中（見說明）"); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = el.dataset.fn; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { alert("下載失敗：" + e.message); }
+};
+
+window.submitReview = async no => {
+  if (!canSubmit()) return;
+  const fi = document.getElementById("subFiles"), files = fi && fi.files ? Array.from(fi.files) : [];
+  const note = ((document.getElementById("subNote") || {}).value || "").trim();
+  if (!files.length) return alert("請先選擇要上傳的佐證文件");
+  const big = files.find(f => f.size > 25 * 1048576); if (big) return alert("「" + big.name + "」超過 25 MB，請壓縮後再上傳");
+  const btn = document.getElementById("subBtn"); if (btn) { btn.disabled = true; btn.textContent = "上傳中…"; }
+  try {
+    const metas = [];
+    for (const f of files) { const id = "fl_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); await FS.put(id, f); metas.push({ id, name: f.name, size: f.size, type: f.type }); }
+    const sub = { id: "sb_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), by: currentUser.u, byName: currentUser.name, at: Date.now(), note, files: metas, status: "pending" };
+    (P.sub[no] = P.sub[no] || []).push(sub);
+    if (stOf(no) < 1) P.st[no] = 1;
+    saveDB(); window.__flash = { no, id: sub.id }; refresh(); openItemCard(N.find(n => n.no === no));
+  } catch (e) { alert("上傳失敗：" + e.message); if (btn) { btn.disabled = false; btn.textContent = "上傳並標記為待審核"; } }
+};
+
+window.decideSub = (no, id, ok, ctx) => {
+  if (!canReview()) return;
+  const s = subsOf(no).find(x => x.id === id); if (!s || s.status !== "pending") return;
+  const cm = (((document.getElementById("cm_" + ctx + "_" + id)) || {}).value || "").trim();
+  if (!ok && !cm) return alert("退回時請填寫原因，讓送審者知道要補什麼");
+  s.status = ok ? "approved" : "rejected"; s.decidedBy = currentUser.u; s.decidedName = currentUser.name; s.decidedAt = Date.now(); s.comment = cm; s.ack = false;
+  if (ok) P.st[no] = 2; else if (stOf(no) === 2) P.st[no] = 1;
+  saveDB(); refresh();
+  const c = document.getElementById("card"); if (c && !c.hidden) openItemCard(N.find(n => n.no === no));
 };
 
 
@@ -310,12 +400,10 @@ window.renderUserBar = () => {
   let b = document.getElementById("userBar");
   if (!currentUser) { if (b) b.remove(); document.body.classList.remove("has-user"); return; }
   if (!b) { b = document.createElement("div"); b.id = "userBar"; document.body.appendChild(b); }
-  const role = { admin: "管理員", auditor: "稽核員", user: "一般員工" }[currentUser.r] || currentUser.r;
-  const other = currentUser.r !== "user" ? "" : (PAGE === "island"
-    ? `<button onclick="location.href='dashboard.html'">📊 儀表板</button>`
-    : `<button onclick="location.href='island.html'">🏝️ 3D 島嶼</button>`);
-  b.innerHTML = `<span class="ub-av">${esc(String(currentUser.name || currentUser.u).slice(0, 1))}</span><span class="ub-n"><b>${esc(currentUser.name)}</b><small>${role}・${esc(currentUser.u)}</small></span><span class="ub-p" title="目前專案">📁 ${esc(P.name || "")}</span>${other}<button onclick="showProjectLobby()">切換專案</button><button class="out" onclick="doLogout()">登出</button>`;
+  const role = { admin: "管理員", auditor: "審核者", boss: "老闆", user: "一般員工" }[currentUser.r] || currentUser.r;
+  b.innerHTML = `<span class="ub-av">${esc(String(currentUser.name || currentUser.u).slice(0, 1))}</span><span class="ub-n"><b>${esc(currentUser.name)}</b><small>${role}・${esc(currentUser.u)}</small></span><span class="ub-p" title="目前專案">📁 ${esc(P.name || "")}</span><button class="bell" onclick="openInbox()" title="審核收件匣／我的送審">🔔${bellCount() ? `<span class="cnt">${bellCount()}</span>` : ""}</button><button onclick="showProjectLobby()">切換專案</button><button class="out" onclick="doLogout()">登出</button>`;
   document.body.classList.add("has-user");
+  document.title = (bellCount() ? "(" + bellCount() + ") " : "") + "ISO 27001 資安島｜條文進度儀表板";
 };
 
 window.doLogout = () => {
@@ -332,7 +420,7 @@ window.enterApp = () => {
 
 // 頁面權限：沒登入 → 登入頁；管理員／稽核員不能進 3D 頁
 if (PAGE !== "login" && !currentUser) location.replace("index.html");
-else if (PAGE === "island" && (isAdmin() || isAuditor())) location.replace("dashboard.html");
+
 
 // ==========================================
 // 側邊面板（條文總覽 / 輔導進度 / 模板庫 / 合規索引）— 3D 頁與儀表板頁共用
@@ -352,11 +440,21 @@ function sync() { if (window.sync3d) window.sync3d(); }
 function openItemCard(n) {
     const disableEdit = !canEdit() ? "disabled" : "";
     const disableAudit = !canAudit() ? "disabled" : "";
+    const T = typeof TASKS !== "undefined" ? TASKS[n.no] : null;
+    const guide = T ? `<div class="blk guide"><h4>📋 要做什麼</h4><ol>${T.steps.map(x => `<li>${esc(x)}</li>`).join("")}</ol><p class="ok"><b>✅ 驗收標準：</b>${esc(T.ok)}</p><p class="own"><b>👤 建議負責：</b>${esc(T.own)}</p></div>` : "";
+    const subs = subsOf(n.no), last = subs[subs.length - 1], fl = window.__flash && window.__flash.no === n.no ? window.__flash : null; window.__flash = null;
+    let subBlk = "";
+    if (fl) { const fs = subs.find(x => x.id === fl.id); if (fs) subBlk += `<div class="flash">✅ 已送出，狀態為「待審核」，老闆與審核者的收件匣會出現這筆請求。<a class="btn" href="${mailtoHref(n, fs)}">✉️ 另外用 Email 通知</a></div>`; }
+    if (canSubmit() && !isNA(n.no) && stOf(n.no) !== 2 && !(last && last.status === "pending")) subBlk += `<div class="subform"><h5>${last && last.status === "rejected" ? "依審核意見補件後重新送審" : "上傳佐證文件並送審"}</h5><input type="file" id="subFiles" multiple><textarea id="subNote" placeholder="備註（選填）：說明文件版本、對應哪個要求或特殊情況"></textarea><button class="btn" id="subBtn" onclick="submitReview('${n.no}')">上傳並標記為待審核</button><p class="mute">送出後狀態變為「待審核」，老闆與審核者會在收件匣收到請求。</p></div>`;
+    else if (canSubmit() && stOf(n.no) === 2) subBlk += `<p class="mute">✅ 此項已核准完成。</p>`;
+    const hist = subs.length ? subs.slice().reverse().map(x => subHtml(n, x, "cd", false)).join("") : `<p class="mute">尚無送審紀錄。</p>`;
 
     $("#cc").innerHTML = `<button class="btn g" onclick="document.getElementById('card').hidden=true">← 返回</button>
       <div class="ch"><div class="tile">${Zs[n.z].e}</div><div><div class="eb">${n.cl ? n.th + "・條款 " + n.no.slice(1) : n.th + "控制・" + n.no}${n.nw ? "・★ 2022 新增" : ""}</div><h2>${n.ti}</h2></div></div>
       <p class="lede" style="color:var(--mute); margin-top:0">${n.en}</p>
+      ${guide}
       <div class="blk"><h4>${n.nw ? "稽核常見證據" : n.cl ? "必備文件／紀錄（條款要求）" : "建議文件／紀錄"}</h4><p>${n.ev}</p></div>
+      <div class="blk"><h4>送審與審核紀錄</h4>${subBlk}<div class="subhist">${hist}</div></div>
       <div class="blk"><h4>SoA 與實作狀態</h4><div class="zp" style="display:block">
         <select ${disableEdit} onchange="setSt('${n.no}', this.value)">${["未開始", "進行中", "已完成"].map((t, k) => `<option value="${k}" ${stOf(n.no) === k ? "selected" : ""}>${t}</option>`).join("")}</select>
         <label style="font-weight:600${n.cl ? ";display:none" : ""}"><input type="checkbox" ${isNA(n.no) ? "checked" : ""} ${disableEdit} onchange="setNA('${n.no}', this.checked)"> 不適用（SoA 排除）</label>
@@ -411,8 +509,9 @@ function openItemCard(n) {
   if (document.getElementById("sb")) sb.innerHTML = `
     <button class="sbx" onclick="document.getElementById('sb').classList.remove('open')">✕</button>
     <div class="eb">ISO 27001 INDEX</div><h2 id="sbProjName">落實資安防護網</h2><p class="mute">${Zs.length} 座島 / ${N.filter(n => !n.cl).length} 項控制措施（附錄 A）＋ ${N.filter(n => n.cl).length} 項核心條款</p>
-    <div class="tabs"><button data-tab="ov" class="on">條文總覽</button><button data-tab="pg">輔導進度</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
+    <div class="tabs"><button data-tab="ov" class="on">條文總覽</button><button data-tab="ib">收件匣</button><button data-tab="pg">輔導進度</button><button data-tab="tp">模板庫</button><button data-tab="idx">合規索引</button></div>
     <div id="tabOv"><div id="ovSum"></div><div id="ovCtl"><input id="ovQ" class="search" type="search" placeholder="搜尋條次、措施名稱…（例：8.13、備份）"></div><div id="ovList"></div></div>
+    <div id="tabIb" hidden></div>
     <div id="tabPg" hidden></div>
     <div id="tabTp" hidden></div>
     <div id="tabIdx" hidden><input id="q" class="search" type="search" placeholder="搜尋條次、措施名稱、證據關鍵字…"><div id="bd"></div></div>
@@ -421,6 +520,37 @@ function openItemCard(n) {
   fill(""); $("#q").oninput = e => fill(e.target.value);
   $("#ovQ").oninput = e => { ovQ = e.target.value.trim(); renderOv(); };
   }
+
+
+  // ==========================================
+  // 收件匣：審核者看到「待審核」，員工看到「我的送審」
+  // ==========================================
+  function renderIb() {
+    const box = $("#tabIb"); if (!box || !currentUser) return;
+    const cnt = bellCount(), tb = sb.querySelector('[data-tab="ib"]');
+    if (tb) tb.innerHTML = (canReview() ? "審核收件匣" : "我的送審") + (cnt ? ` <span class="cnt">${cnt}</span>` : "");
+    let h = "";
+    if (canReview()) {
+      const pend = pendingSubs().sort((a, b) => b.s.at - a.s.at);
+      h += `<h3 class="ib-h">待審核（${pend.length}）</h3>` + (pend.length ? pend.map(x => subHtml(x.n, x.s, "ib", true)).join("") : `<p class="mute">目前沒有待審核的文件。</p>`);
+      const done = allSubs().filter(x => x.s.status !== "pending").sort((a, b) => b.s.decidedAt - a.s.decidedAt).slice(0, 30);
+      h += `<details class="ib-d"><summary>已處理（${done.length}）</summary>${done.map(x => subHtml(x.n, x.s, "ibd", true)).join("") || `<p class="mute">尚無紀錄</p>`}</details>`;
+    } else {
+      const mine = mySubs().sort((a, b) => b.s.at - a.s.at);
+      h += `<h3 class="ib-h">我的送審（${mine.length}）</h3>` + (mine.length ? mine.map(x => subHtml(x.n, x.s, "ib", true)).join("") : `<p class="mute">還沒有送審紀錄。到「條文總覽」點任一條文，就能上傳文件並送審。</p>`);
+    }
+    box.innerHTML = h;
+  }
+  function ackMine() {
+    if (!currentUser || canReview()) return;
+    let ch = false; mySubs().forEach(x => { if (x.s.status !== "pending" && !x.s.ack) { x.s.ack = true; ch = true; } });
+    if (ch) { saveDB(); renderUserBar(); }
+  }
+  window.openInbox = () => {
+    const t = sb.querySelector('[data-tab="ib"]'); if (t) t.click();
+    const c = document.getElementById("card"); if (c) c.hidden = true;
+    sb.classList.add("open"); sb.scrollTop = 0;
+  };
 
   // ==========================================
   // 條文總覽：每一條條文的進度一目了然
@@ -431,28 +561,28 @@ function openItemCard(n) {
   window.ovTog = (i, o) => { if (o) ovClosed.delete(i); else ovClosed.add(i); };
   function ovInfo(n) {
     const na = isNA(n.no), s = stOf(n.no), m = curMonth();
-    return { na, s, nc: ncOf(n.no), late: !na && s < 2 && m > 0 && m > ZDUE[n.z] };
+    return { na, s, rv: revOf(n.no), nc: ncOf(n.no), late: !na && s < 2 && m > 0 && m > ZDUE[n.z] };
   }
   function ovMatch(n, f) {
     const x = ovInfo(n);
     if (ovQ && ![n.no, n.ti, n.en, n.ev].join(" ").toLowerCase().includes(ovQ.toLowerCase())) return false;
     switch (f) {
-      case "todo": return !x.na && x.s === 0; case "doing": return !x.na && x.s === 1; case "done": return !x.na && x.s === 2;
+      case "rv": return x.rv === "pending"; case "todo": return !x.na && x.s === 0; case "doing": return !x.na && x.s === 1; case "done": return !x.na && x.s === 2;
       case "na": return x.na; case "nc": return x.nc > 0; case "late": return x.late; default: return true;
     }
   }
   function renderOv() {
     const box = $("#ovList"); if (!box) return;
     const keep = sb.scrollTop, I = N.map(ovInfo);
-    const cnt = { all: N.length, todo: 0, doing: 0, done: 0, na: 0, nc: 0, late: 0 };
-    I.forEach(x => { if (x.na) cnt.na++; else cnt[["todo", "doing", "done"][x.s]]++; if (x.nc) cnt.nc++; if (x.late) cnt.late++; });
+    const cnt = { all: N.length, rv: 0, todo: 0, doing: 0, done: 0, na: 0, nc: 0, late: 0 };
+    I.forEach(x => { if (x.na) cnt.na++; else cnt[["todo", "doing", "done"][x.s]]++; if (x.nc) cnt.nc++; if (x.late) cnt.late++; if (x.rv === "pending") cnt.rv++; });
     const pctOf = list => { const a = list.filter(n => !isNA(n.no)), d = a.filter(n => stOf(n.no) === 2).length; return [d, a.length, a.length ? Math.round(d * 100 / a.length) : 0]; };
     const [aD, aT, aP] = pctOf(N), [cD, cT, cP] = pctOf(N.filter(n => n.cl)), [xD, xT, xP] = pctOf(N.filter(n => !n.cl));
     const card = (f, t, c) => `<button class="ov-card ${ovFilter === f ? "on" : ""}" style="--c:${c}" onclick="ovSet('${f}')"><b>${cnt[f]}</b><span>${t}</span></button>`;
     $("#ovSum").innerHTML = `
       <div class="ov-big"><div><b>${aP}%</b><span>${aD} / ${aT} 項已完成</span></div>
         <div class="ov-sub"><div>核心條款 <b>${cD}/${cT}</b><i style="--w:${cP}%"></i></div><div>附錄 A 控制措施 <b>${xD}/${xT}</b><i style="--w:${xP}%"></i></div></div></div>
-      <div class="ov-cards">${card("all", "全部", "#64748b")}${card("done", "已完成", "#10b981")}${card("doing", "進行中", "#3b82f6")}${card("todo", "未開始", "#9ca3af")}${card("late", "逾期", "#ef4444")}${card("nc", "有稽核缺失", "#f59e0b")}${card("na", "不適用", "#a1a1aa")}</div>`;
+      <div class="ov-cards">${card("all", "全部", "#64748b")}${card("done", "已完成", "#10b981")}${card("rv", "待審核", "#f59e0b")}${card("doing", "進行中", "#3b82f6")}${card("todo", "未開始", "#9ca3af")}${card("late", "逾期", "#ef4444")}${card("nc", "有稽核缺失", "#f59e0b")}${card("na", "不適用", "#a1a1aa")}</div>`;
     let html = "", shown = 0;
     Zs.forEach((z, i) => {
       const rows = N.filter(n => n.z === i && ovMatch(n, ovFilter)); if (!rows.length) return; shown += rows.length;
@@ -466,7 +596,7 @@ function openItemCard(n) {
           return `<div class="ov-row ${x.na ? "na" : ""}"><span class="cno" onclick="pins[${n.id}].onclick()">${dn(n.no)}</span>
             <span class="ov-t" onclick="pins[${n.id}].onclick()">${n.ti}${n.nw ? " ★" : ""}<small>${n.en}</small></span>
             <span class="ov-st"><span class="ov-pb"><i style="--w:${x.na ? 0 : x.s * 50}%;--c:${c}"></i></span>${ctl}</span>
-            <span class="ov-fl">${x.late ? `<span class="bdg" style="--c:#ef4444">逾期</span>` : ""}${x.nc ? `<span class="bdg" style="--c:${x.nc > 1 ? "#ef4444" : "#f59e0b"}">${NC_TXT[x.nc]}</span>` : ""}${tn ? `<span class="bdg" style="--c:#6366f1">📎 ${tn}</span>` : ""}</span></div>`; }).join("")}
+            <span class="ov-fl">${x.rv === "pending" ? `<span class="bdg" style="--c:#f59e0b">⏳ 待審核</span>` : x.rv === "rejected" && x.s < 2 ? `<span class="bdg" style="--c:#ef4444">已退回</span>` : ""}${x.late ? `<span class="bdg" style="--c:#ef4444">逾期</span>` : ""}${x.nc ? `<span class="bdg" style="--c:${x.nc > 1 ? "#ef4444" : "#f59e0b"}">${NC_TXT[x.nc]}</span>` : ""}${tn ? `<span class="bdg" style="--c:#6366f1">📎 ${tn}</span>` : ""}</span></div>`; }).join("")}
         </div></details>`;
     });
     box.innerHTML = html || `<p class="mute" style="margin-top:16px">沒有符合條件的條文。</p>`;
@@ -537,11 +667,11 @@ function openItemCard(n) {
       $("#sbProjName").innerText = P.name || "未命名專案";
     }
     if (window.on3dRefresh) window.on3dRefresh();
-    sync(); renderPg(); renderOv();
+    sync(); renderPg(); renderOv(); renderIb();
     const t = totDone(), all = totAll() || 1; $("#realLabel").innerText = `輔導完成度：${t}/${totAll()} 項（${Math.round(t * 100 / all)}%）`; $("#tr-fill2").style.width = `${t * 100 / all}%`;
   }
   
-  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; saveDB(); refresh(); } };
+  window.pgReset = () => { if (canEdit() && confirm("確定清除所有實作狀態、排除理由與負責人？")) { P.st = {}; P.na = {}; P.why = {}; P.own = {}; P.nc = {}; P.sub = {}; saveDB(); refresh(); } };
   window.pgSoA = () => {
     const q = s => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"', ST = ["未開始", "進行中", "已完成"], NC_ST = ["無缺失", "OFI", "Minor NC", "Major NC"];
     const rows = [["條次", "措施（中文）", "English", "主題", "所屬島", "2022新增", "適用", "排除理由", "實作狀態", "稽核缺失", "負責人", "模板檔案", "建議文件／紀錄"]];
@@ -549,7 +679,7 @@ function openItemCard(n) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" })); a.download = `SoA_${P.client || "ISO27001"}.csv`; a.click();
   };
   
-  if (document.getElementById("sb")) sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Ov", "Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); };
+  if (document.getElementById("sb")) sb.querySelector(".tabs").onclick = e => { const bt = e.target.closest("button"); if (!bt) return; sb.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === bt)); ["Ov", "Ib", "Pg", "Tp", "Idx"].forEach(k => $("#tab" + k).hidden = bt.dataset.tab !== k.toLowerCase()); if (bt.dataset.tab === "ib") { renderIb(); ackMine(); } };
   
   async function init() {
     await loadUsers();

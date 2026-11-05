@@ -268,3 +268,29 @@ body.has-user:not(.dash-only) .topbar { top: 62px; }
 body.has-user:not(.serious-mode) #sb { padding-top: 62px; }
 body.has-user:not(.serious-mode) #card { top: 158px; }
 @media (max-width: 700px) { #userBar .ub-p, #userBar .ub-n small { display: none; } }
+
+
+/* ===== 送審 / 審核收件匣 / 作業指引 ===== */
+.cnt { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 99px; background: #ef4444; color: #fff; font-size: 11px; font-weight: 900; line-height: 18px; text-align: center; margin-left: 4px; }
+#userBar button.bell { padding: 6px 10px; }
+.guide ol { margin: 6px 0 10px 20px; padding: 0; line-height: 1.75; }
+.guide li { margin-bottom: 4px; }
+.guide p.ok { background: color-mix(in srgb, #10b981 12%, transparent); border-left: 4px solid #10b981; padding: 8px 12px; border-radius: 8px; margin: 8px 0; }
+.guide p.own { color: var(--mute); margin: 6px 0 0; font-size: 13px; }
+.subform { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: var(--soft); }
+.subform h5 { margin: 0 0 8px; font-size: 14px; }
+.subform input[type=file] { display: block; width: 100%; margin-bottom: 8px; }
+.subform textarea { width: 100%; box-sizing: border-box; min-height: 56px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; font: inherit; margin-bottom: 8px; background: #fff; }
+.flash { background: color-mix(in srgb, #10b981 14%, transparent); border: 1px solid #10b981; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.subc { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; background: var(--card-bg); }
+.subc.new { border-color: #3b82f6; box-shadow: 0 0 0 2px color-mix(in srgb, #3b82f6 25%, transparent); }
+.subc .sh { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; margin-bottom: 6px; }
+.subc .sh b { font-size: 14px; } .subc .sh .st { margin-left: auto; }
+.subc .note { margin: 4px 0; font-size: 13px; white-space: pre-wrap; }
+.subc .cmt { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; background: var(--soft); }
+.subc textarea { width: 100%; box-sizing: border-box; min-height: 52px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; font: inherit; margin: 8px 0; background: #fff; }
+.subc .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.subc .acts .btn.ok { background: #10b981; } .subc .acts .btn.no { background: #ef4444; }
+.fchip { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 4px 10px; margin: 2px 4px 2px 0; cursor: pointer; }
+.fchip small { color: var(--mute); font-weight: 500; }
+.ib-h { margin: 16px 0 4px; font-size: 16px; } .ib-d { margin-top: 16px; } .ib-d summary { cursor: pointer; font-weight: 800; }
